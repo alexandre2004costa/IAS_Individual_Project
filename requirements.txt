@@ -1,0 +1,16 @@
+numpy
+pandas
+scikit-learn
+aif360
+fairlearn
+Jinja2
+seaborn
+networkx
+mlxtend
+plotly
+hiplot
+gower
+xlrd
+kaleido
+biasondemand
+shap
