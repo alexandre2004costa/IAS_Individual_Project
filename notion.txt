@@ -1,3 +1,6 @@
+PROJ DESCRP:
+This project explores how synthetic datasets can serve as an ethical laboratory to systematically study and audit AI model behavior under controlled data conditions. By generating synthetic data with adjustable properties—such as bias, imbalance, noise, or missing values, the study will analyze how these factors affect model robustness, fairness, and explainability.
+
 Combine bias w missing data ...
 In bias datasets, apply SMOT and compara w baseline model
 
