@@ -24,12 +24,11 @@ def load_data(directory_path):
         return None, None, None, None
     
 
-def fairness_run(sensitive_attribute, diffs = ['0.00','0.05', '0.10', '0.15', '0.20', '0.25', '0.30', '0.35', '0.40', '0.45', '0.50', '0.55', '0.60', '0.65', '0.70', '0.75', '0.80', '0.85', '0.90', '0.95', '1.00', '2.00']):
+def fairness_run(sensitive_attribute, diffs, datasets):
     experiment_directories = []
     for i in diffs:
-        experiment_directories.append(f'datasets/bias_lq_{i}')
-        experiment_directories.append(f'datasets/noise_sy_{i}')
-        experiment_directories.append(f'datasets/imbalance_pu_{i}')
+        for d in datasets:
+            experiment_directories.append(f'datasets/{d}_{i}')
 
 
     for i, dir_path in enumerate(experiment_directories):
@@ -53,6 +52,19 @@ def fairness_run(sensitive_attribute, diffs = ['0.00','0.05', '0.10', '0.15', '0
         print(f"Overall Fairness Score: {ress:.4f} (lower is better)")
 
 if __name__ == "__main__":
-    fairness_run(sensitive_attribute='A')
-
+    light_levels = ['0.0', '0.25', '0.5', '0.75', '1.0']
+    detailed_levels = ['0.00', '0.10', '0.20', '0.30', '0.40', '0.50', '0.60', '0.70', '0.80', '0.90', '1.00']
+    datasets = [
+        'hist_bias_Q_lq',
+        'hist_bias_R_lhr',
+        'hist_bias_Y_ly',
+        'interaction_bias_lyb',
+        'meas_bias_R_lm',
+        'meas_bias_Y_lmy',
+        'undersample_pu',
+        #'representation_bias_lr_true',
+        #'omitted_var_bias_lo_true',
+        'label_noise_sy',
+    ]
+    fairness_run(sensitive_attribute='A', diffs = detailed_levels, datasets=datasets)
     
