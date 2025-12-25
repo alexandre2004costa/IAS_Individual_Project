@@ -23,10 +23,7 @@ def generate_historical_bias_Q(bias_levels):
         biasondemand.generate_dataset(
             path=f"/hist_bias_Q_lq_{l_q_val:.2f}",
             dim=10000,
-            sy=0.0,
             l_q=l_q_val,      # Historical bias on Q
-            l_r_q=0.0,
-            l_h_q=0.0,
             thr_supp=1.0
         )
 
@@ -37,9 +34,6 @@ def generate_historical_bias_R(bias_levels):
         biasondemand.generate_dataset(
             path=f"/hist_bias_R_lhr_{l_h_r_val:.2f}",
             dim=10000,
-            sy=0.0,
-            l_q=0.0,
-            l_r_q=0.0,
             l_h_r=l_h_r_val,  # Historical bias on R
             thr_supp=1.0
         )
@@ -51,9 +45,6 @@ def generate_historical_bias_Y(bias_levels):
         biasondemand.generate_dataset(
             path=f"/hist_bias_Y_ly_{l_y_val:.2f}",
             dim=10000,
-            sy=0.0,
-            l_q=0.0,
-            l_r_q=0.0,
             l_y=l_y_val,      # Historical bias on Y
             thr_supp=1.0
         )
@@ -65,9 +56,6 @@ def generate_interaction_bias(bias_levels):
         biasondemand.generate_dataset(
             path=f"/interaction_bias_lyb_{l_y_b_val:.2f}",
             dim=10000,
-            sy=0.0,
-            l_q=0.0,
-            l_r_q=0.0,
             l_y_b=l_y_b_val,  # Interaction proxy bias
             thr_supp=1.0
         )
@@ -83,9 +71,6 @@ def generate_measurement_bias_R(bias_levels):
         biasondemand.generate_dataset(
             path=f"/meas_bias_R_lm_{l_m_val:.2f}",
             dim=10000,
-            sy=0.0,
-            l_q=0.0,
-            l_r_q=0.0,
             l_m=l_m_val,      # Measurement bias on R
             thr_supp=1.0
         )
@@ -97,9 +82,6 @@ def generate_measurement_bias_Y(bias_levels):
         biasondemand.generate_dataset(
             path=f"/meas_bias_Y_lmy_{l_m_y_val:.2f}",
             dim=10000,
-            sy=0.0,
-            l_q=0.0,
-            l_r_q=0.0,
             l_m_y=l_m_y_val,  # Measurement bias on Y
             thr_supp=1.0
         )
@@ -115,41 +97,34 @@ def generate_undersampling(undersampling_levels):
         biasondemand.generate_dataset(
             path=f"/undersample_pu_{p_u_val:.2f}",
             dim=15000,  # Larger to have enough samples after undersampling
-            sy=0.0,
-            l_q=0.0,
-            l_r_q=0.0,
             p_u=p_u_val,      # Undersampling percentage
             thr_supp=1.0
         )
 
 # 3b. Representation Bias (conditional undersampling on R)
-def generate_representation_bias():
+def generate_representation_bias(levels):
     """l_r: Conditional undersampling based on feature R"""
-    biasondemand.generate_dataset(
-        path="/representation_bias_lr_true",
-        dim=15000,
-        sy=0.0,
-        l_q=0.0,
-        l_r_q=0.0,
-        l_r=True,         # Enable representation bias
-        thr_supp=1.0
-    )
+    for l in levels:
+        biasondemand.generate_dataset(
+            path=f"/representation_bias_lr_true_{l:.2f}",
+            dim=15000,
+            l_r=True,         # Enable representation bias
+            thr_supp=1.0
+        )
 
 # =============================================================================
 # 4. OMITTED VARIABLE BIAS
 # =============================================================================
 
-def generate_omitted_variable_bias():
+def generate_omitted_variable_bias(levels):
     """l_o: Excludes important variable R (omitted variable bias)"""
-    biasondemand.generate_dataset(
-        path="/omitted_var_bias_lo_true",
-        dim=10000,
-        sy=0.0,
-        l_q=0.0,
-        l_r_q=0.0,
-        l_o=True,         # Enable omitted variable bias
-        thr_supp=1.0
-    )
+    for l in levels:
+        biasondemand.generate_dataset(
+            path=f"/omitted_var_bias_lo_true_{l:.2f}",
+            dim=10000,
+            l_o=True,         # Enable omitted variable bias
+            thr_supp=1.0
+        )
 
 # =============================================================================
 # 5. LABEL NOISE SERIES
@@ -162,8 +137,6 @@ def generate_label_noise(noise_levels):
             path=f"/label_noise_sy_{sy_val:.2f}",
             dim=10000,
             sy=sy_val,        # Label noise
-            l_q=0.0,
-            l_r_q=0.0,
             thr_supp=1.0
         )
 
@@ -189,10 +162,10 @@ generate_measurement_bias_Y(detailed_levels)
 
 print("\n3. Representation Bias Series:")
 generate_undersampling(detailed_levels)
-#generate_representation_bias()
+#generate_representation_bias(detailed_levels)
 
 print("\n4. Omitted Variable Bias:")
-#generate_omitted_variable_bias()
+generate_omitted_variable_bias(detailed_levels)
 
 print("\n5. Label Noise Series:")
 generate_label_noise(detailed_levels)

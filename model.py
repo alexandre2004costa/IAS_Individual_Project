@@ -63,7 +63,7 @@ if __name__ == "__main__":
         'meas_bias_Y_lmy',
         'undersample_pu',
         #'representation_bias_lr_true',
-        #'omitted_var_bias_lo_true',
+        'omitted_var_bias_lo_true',
         'label_noise_sy',
     ]
     fairness_run(sensitive_attribute='A', diffs = detailed_levels, datasets=datasets)
