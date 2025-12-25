@@ -1,184 +1,388 @@
 import biasondemand
 
 # =============================================================================
-# BASELINE - Clean, Unbiased Dataset
+# CRITICAL: DEFAULT VALUES FROM SOURCE CODE
 # =============================================================================
+# Default parameters values:
+# l_y = 4      ← NOT 0! (historical bias on Y)
+# l_h_r = 1.5  ← NOT 0! (historical bias on R)
+# l_h_q = 1    ← NOT 0! (historical bias on Q)
+# l_m = 1      ← NOT 0! (measurement bias on R)
+# p_u = 1      ← NOT 0! (100% undersampling = removes ALL A=1!)
+# l_q = 2      ← NOT 0! (importance of Q for Y)
+# sy = 5       ← NOT 0! (label noise)
+# l_m_y = 0    ✓ Zero
+# l_r_q = 0    ✓ Zero
+# l_y_b = 0    ✓ Zero
+# l_r = False  ✓ False
+# l_o = False  ✓ False
+# thr_supp = 1 ✓ Correct
+# l_m_y_non_linear=False
+
+
 biasondemand.generate_dataset(
-    path="/baseline",
+    path="/baseline_",
     dim=10000,
-    sy=0.0,
-    l_q=0.0,
-    l_r_q=0.0,
-    thr_supp=1.0
+    l_y=0, l_m_y=0, l_h_r=0, l_h_q=0, l_m=0, p_u=0,
+    l_r=False, l_o=False, l_y_b=0, l_q=0, sy=0, l_r_q=0,
+    thr_supp=1, l_m_y_non_linear=False
 )
+print("✓ Baseline generated\n")
 
 # =============================================================================
-# 1. HISTORICAL BIAS SERIES
+# CATEGORY 1: HISTORICAL BIAS
 # =============================================================================
+# Most common and impactful in real-world scenarios
 
-# 1a. Historical Bias on Q (feature bias)
-def generate_historical_bias_Q(bias_levels):
-    """l_q: Historical bias where Q is biased against A=1"""
-    for l_q_val in bias_levels:
-        biasondemand.generate_dataset(
-            path=f"/hist_bias_Q_lq_{l_q_val:.2f}",
-            dim=10000,
-            l_q=l_q_val,      # Historical bias on Q
-            thr_supp=1.0
-        )
-
-# 1b. Historical Bias on R (another feature)
-def generate_historical_bias_R(bias_levels):
-    """l_h_r: Historical bias on feature R against A=1"""
-    for l_h_r_val in bias_levels:
-        biasondemand.generate_dataset(
-            path=f"/hist_bias_R_lhr_{l_h_r_val:.2f}",
-            dim=10000,
-            l_h_r=l_h_r_val,  # Historical bias on R
-            thr_supp=1.0
-        )
-
-# 1c. Historical Bias on Target Y (label bias)
 def generate_historical_bias_Y(bias_levels):
-    """l_y: Historical bias directly on target Y against A=1"""
+    """
+    1A. Historical Bias on Target Y (MOST SEVERE)
+    
+    Direct discrimination in labels.
+    Example: Loan officers historically approved fewer loans for minorities.
+    
+    Effect: Y is directly reduced for A=1, regardless of features.
+    """
+    print("\n" + "="*80)
+    print("1A. HISTORICAL BIAS ON Y (Direct Label Bias) - MOST SEVERE")
+    print("="*80)
+    
     for l_y_val in bias_levels:
+        print(f"  Generating l_y={l_y_val:.2f}")
         biasondemand.generate_dataset(
             path=f"/hist_bias_Y_ly_{l_y_val:.2f}",
             dim=10000,
-            l_y=l_y_val,      # Historical bias on Y
-            thr_supp=1.0
+            l_y=l_y_val,  # ← VARYING THIS
+            l_m_y=0, l_h_r=0, l_h_q=0, l_m=0, p_u=0,
+            l_r=False, l_o=False, l_y_b=0, l_q=0, sy=0, l_r_q=0,
+            thr_supp=1, l_m_y_non_linear=False
         )
+    print("✓ Historical bias Y complete\n")
 
-# 1d. Interaction Proxy Bias (complex historical bias)
-def generate_interaction_bias(bias_levels):
-    """l_y_b: Historical bias on Y for A=1 with high R values"""
+
+def generate_historical_bias_Q(bias_levels):
+    """
+    1B. Historical Bias on Feature Q
+    
+    Q (e.g., credit score) systematically lower for A=1.
+    Example: Credit scores biased against minorities due to historical factors.
+    
+    Effect: Q values reduced for A=1, model learns to penalize A=1.
+    """
+    print("\n" + "="*80)
+    print("1B. HISTORICAL BIAS ON Q (Feature Bias)")
+    print("="*80)
+    
+    for l_h_q_val in bias_levels:
+        print(f"  Generating l_h_q={l_h_q_val:.2f}")
+        biasondemand.generate_dataset(
+            path=f"/hist_bias_Q_lhq_{l_h_q_val:.2f}",
+            dim=10000,
+            l_h_q=l_h_q_val,  # ← VARYING THIS
+            l_y=0, l_m_y=0, l_h_r=0, l_m=0, p_u=0,
+            l_r=False, l_o=False, l_y_b=0, l_q=0, sy=0, l_r_q=0,
+            thr_supp=1, l_m_y_non_linear=False
+        )
+    print("✓ Historical bias Q complete\n")
+
+
+def generate_historical_bias_R(bias_levels):
+    """
+    1C. Historical Bias on Feature R
+    
+    R (e.g., income) systematically lower for A=1.
+    Example: Gender pay gap, income disparities.
+    
+    Effect: R values reduced for A=1, legitimate feature now correlates with A.
+    """
+    print("\n" + "="*80)
+    print("1C. HISTORICAL BIAS ON R (Feature Bias)")
+    print("="*80)
+    
+    for l_h_r_val in bias_levels:
+        print(f"  Generating l_h_r={l_h_r_val:.2f}")
+        biasondemand.generate_dataset(
+            path=f"/hist_bias_R_lhr_{l_h_r_val:.2f}",
+            dim=10000,
+            l_h_r=l_h_r_val,  # ← VARYING THIS
+            l_y=0, l_m_y=0, l_h_q=0, l_m=0, p_u=0,
+            l_r=False, l_o=False, l_y_b=0, l_q=0, sy=0, l_r_q=0,
+            thr_supp=1, l_m_y_non_linear=False
+        )
+    print("✓ Historical bias R complete\n")
+
+
+def generate_interaction_proxy_bias(bias_levels):
+    """
+    1D. Interaction Proxy Bias (Complex Historical Bias)
+    
+    A=1 with high R values get lower Y (non-linear discrimination).
+    Example: High-earning minorities face discrimination.
+    
+    Effect: Bias depends on interaction between A and R.
+    """
+    print("\n" + "="*80)
+    print("1D. INTERACTION PROXY BIAS (Complex Historical)")
+    print("="*80)
+    
     for l_y_b_val in bias_levels:
+        print(f"  Generating l_y_b={l_y_b_val:.2f}")
         biasondemand.generate_dataset(
             path=f"/interaction_bias_lyb_{l_y_b_val:.2f}",
             dim=10000,
-            l_y_b=l_y_b_val,  # Interaction proxy bias
-            thr_supp=1.0
+            l_y_b=l_y_b_val,  # ← VARYING THIS
+            l_y=0, l_m_y=0, l_h_r=0, l_h_q=0, l_m=0, p_u=0,
+            l_r=False, l_o=False, l_q=0, sy=0, l_r_q=0,
+            thr_supp=1, l_m_y_non_linear=False
         )
+    print("✓ Interaction proxy bias complete\n")
+
 
 # =============================================================================
-# 2. MEASUREMENT BIAS SERIES
+# CATEGORY 2: MEASUREMENT BIAS
 # =============================================================================
+# Variables measured incorrectly or with error
 
-# 2a. Measurement Bias on Feature R
+def generate_measurement_bias_Y_linear(bias_levels):
+    """
+    2A. Measurement Bias on Y (Linear)
+    
+    Labels Y measured with systematic error.
+    Example: Recidivism measured by arrests, not actual crimes.
+    
+    Effect: Y labels have systematic errors differing by group.
+    """
+    print("\n" + "="*80)
+    print("2A. MEASUREMENT BIAS ON Y (Linear)")
+    print("="*80)
+    
+    for l_m_y_val in bias_levels:
+        print(f"  Generating l_m_y={l_m_y_val:.2f} (linear)")
+        biasondemand.generate_dataset(
+            path=f"/meas_bias_Y_linear_lmy_{l_m_y_val:.2f}",
+            dim=10000,
+            l_m_y=l_m_y_val,  # ← VARYING THIS
+            l_m_y_non_linear=False,  # Linear measurement bias
+            l_y=0, l_h_r=0, l_h_q=0, l_m=0, p_u=0,
+            l_r=False, l_o=False, l_y_b=0, l_q=0, sy=0, l_r_q=0,
+            thr_supp=1
+        )
+    print("✓ Measurement bias Y (linear) complete\n")
+
+
+def generate_measurement_bias_Y_nonlinear(bias_levels):
+    """
+    2B. Measurement Bias on Y (Non-Linear)
+    
+    Labels Y measured with non-linear systematic error.
+    Example: Measurement error depends on R values.
+    
+    Effect: Complex measurement errors conditional on features.
+    """
+    print("\n" + "="*80)
+    print("2B. MEASUREMENT BIAS ON Y (Non-Linear)")
+    print("="*80)
+    
+    for l_m_y_val in bias_levels:
+        print(f"  Generating l_m_y={l_m_y_val:.2f} (non-linear)")
+        biasondemand.generate_dataset(
+            path=f"/meas_bias_Y_nonlinear_lmy_{l_m_y_val:.2f}",
+            dim=10000,
+            l_m_y=l_m_y_val,  # ← VARYING THIS
+            l_m_y_non_linear=True,  # Non-linear measurement bias
+            l_y=0, l_h_r=0, l_h_q=0, l_m=0, p_u=0,
+            l_r=False, l_o=False, l_y_b=0, l_q=0, sy=0, l_r_q=0,
+            thr_supp=1
+        )
+    print("✓ Measurement bias Y (non-linear) complete\n")
+
+
 def generate_measurement_bias_R(bias_levels):
-    """l_m: Measurement bias on R (R is replaced by proxy P)"""
+    """
+    2C. Measurement Bias on Feature R
+    
+    R observed through noisy proxy P instead of true R.
+    Example: Self-reported income (P) vs actual income (R).
+    
+    Effect: R column replaced by P with measurement error.
+    """
+    print("\n" + "="*80)
+    print("2C. MEASUREMENT BIAS ON R (Proxy)")
+    print("="*80)
+    
     for l_m_val in bias_levels:
+        print(f"  Generating l_m={l_m_val:.2f}")
         biasondemand.generate_dataset(
             path=f"/meas_bias_R_lm_{l_m_val:.2f}",
             dim=10000,
-            l_m=l_m_val,      # Measurement bias on R
-            thr_supp=1.0
+            l_m=l_m_val,  # ← VARYING THIS (R → P proxy)
+            l_y=0, l_m_y=0, l_h_r=0, l_h_q=0, p_u=0,
+            l_r=False, l_o=False, l_y_b=0, l_q=0, sy=0, l_r_q=0,
+            thr_supp=1, l_m_y_non_linear=False
         )
+    print("✓ Measurement bias R complete\n")
 
-# 2b. Measurement Bias on Target Y
-def generate_measurement_bias_Y(bias_levels):
-    """l_m_y: Measurement bias on target Y"""
-    for l_m_y_val in bias_levels:
-        biasondemand.generate_dataset(
-            path=f"/meas_bias_Y_lmy_{l_m_y_val:.2f}",
-            dim=10000,
-            l_m_y=l_m_y_val,  # Measurement bias on Y
-            thr_supp=1.0
-        )
 
 # =============================================================================
-# 3. REPRESENTATION BIAS SERIES (Sampling/Selection Bias)
+# CATEGORY 3: REPRESENTATION BIAS (Sampling Issues)
 # =============================================================================
+# Some groups under/over-represented in data
 
-# 3a. Simple Undersampling (removes proportion of A=1 group)
 def generate_undersampling(undersampling_levels):
-    """p_u: Percentage of A=1 instances to REMOVE (higher = more bias)"""
+    """
+    3A. Simple Undersampling (p_u)
+    
+    Removes percentage of A=1 samples.
+    Example: Only 10% of loan applications from minorities in dataset.
+    
+    Effect: Model has less data for A=1, worse predictions.
+    
+    NOTE: Higher p_u = MORE bias (removes more samples)
+    """
+    print("\n" + "="*80)
+    print("3A. UNDERSAMPLING (Simple)")
+    print("="*80)
+    
     for p_u_val in undersampling_levels:
+        print(f"  Generating p_u={p_u_val:.2f} (removes {p_u_val*100:.0f}% of A=1)")
         biasondemand.generate_dataset(
             path=f"/undersample_pu_{p_u_val:.2f}",
-            dim=15000,  # Larger to have enough samples after undersampling
-            p_u=p_u_val,      # Undersampling percentage
-            thr_supp=1.0
+            dim=15000,  # Larger to have samples left
+            p_u=p_u_val,  # ← VARYING THIS (0=fair, 0.9=severe)
+            l_y=0, l_m_y=0, l_h_r=0, l_h_q=0, l_m=0,
+            l_r=False, l_o=False, l_y_b=0, l_q=0, sy=0, l_r_q=0,
+            thr_supp=1, l_m_y_non_linear=False
         )
+    print("✓ Undersampling complete\n")
 
-# 3b. Representation Bias (conditional undersampling on R)
+
 def generate_representation_bias(levels):
-    """l_r: Conditional undersampling based on feature R"""
+    """
+    3B. Representation Bias (Conditional Undersampling)
+    
+    Undersamples A=1 conditional on R values.
+    Example: High-income minorities are rare in dataset.
+    
+    Effect: Model never sees certain (A, R) combinations.
+    """
+    print("\n" + "="*80)
+    print("3B. REPRESENTATION BIAS (Conditional on R)")
+    print("="*80)
+    
+    print("  Generating l_r=True")
     for l in levels:
         biasondemand.generate_dataset(
-            path=f"/representation_bias_lr_true_{l:.2f}",
+            path=f"/representation_bias_lr_true{l:.2f}",
             dim=15000,
-            l_r=True,         # Enable representation bias
-            thr_supp=1.0
+            l_r=True,  # ← ENABLING THIS
+            p_u=l,  # Need some undersampling for l_r to matter
+            l_y=0, l_m_y=0, l_h_r=0, l_h_q=0, l_m=0,
+            l_o=False, l_y_b=0, l_q=0, sy=0, l_r_q=0,
+            thr_supp=1, l_m_y_non_linear=False
         )
+    print("✓ Representation bias complete\n")
+
 
 # =============================================================================
-# 4. OMITTED VARIABLE BIAS
+# CATEGORY 5: LABEL NOISE (Not Bias - Performance Degradation)
 # =============================================================================
-
-def generate_omitted_variable_bias(levels):
-    """l_o: Excludes important variable R (omitted variable bias)"""
-    for l in levels:
-        biasondemand.generate_dataset(
-            path=f"/omitted_var_bias_lo_true_{l:.2f}",
-            dim=10000,
-            l_o=True,         # Enable omitted variable bias
-            thr_supp=1.0
-        )
-
-# =============================================================================
-# 5. LABEL NOISE SERIES
-# =============================================================================
+# Random errors in labels (affects both groups)
 
 def generate_label_noise(noise_levels):
-    """sy: Standard deviation of noise in Y labels"""
+    """
+    5. Label Noise (sy)
+    
+    Random noise added to Y labels.
+    Example: Random labeling errors in dataset.
+    
+    Effect: Overall accuracy drops, both groups affected equally.
+    
+    NOTE: This is NOT bias, but degrades performance!
+    """
+    print("\n" + "="*80)
+    print("5. LABEL NOISE (Not Bias - Degrades Performance)")
+    print("="*80)
+    
     for sy_val in noise_levels:
+        print(f"  Generating sy={sy_val:.2f}")
         biasondemand.generate_dataset(
             path=f"/label_noise_sy_{sy_val:.2f}",
             dim=10000,
-            sy=sy_val,        # Label noise
-            thr_supp=1.0
+            sy=sy_val,  # ← VARYING THIS
+            l_y=0, l_m_y=0, l_h_r=0, l_h_q=0, l_m=0, p_u=0,
+            l_r=False, l_o=False, l_y_b=0, l_q=0, l_r_q=0,
+            thr_supp=1, l_m_y_non_linear=False
         )
+    print("✓ Label noise complete\n")
+
 
 # =============================================================================
-# EXECUTION - Generate All Datasets
+# EXECUTION
 # =============================================================================
 
-# Define levels for continuous parameters
-light_levels = [0.0, 0.25, 0.5, 0.75, 1.0]
-detailed_levels = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-undersampling_levels = [0.0, 0.2, 0.4, 0.6, 0.8, 0.9]  # 0.0=no bias, 0.9=remove 90% of A=1
-
-print("Generating datasets...")
-print("\n1. Historical Bias Series:")
-generate_historical_bias_Q(detailed_levels)
-generate_historical_bias_R(detailed_levels)
-generate_historical_bias_Y(detailed_levels)
-generate_interaction_bias(detailed_levels)
-
-print("\n2. Measurement Bias Series:")
-generate_measurement_bias_R(detailed_levels)
-generate_measurement_bias_Y(detailed_levels)
-
-print("\n3. Representation Bias Series:")
-generate_undersampling(detailed_levels)
-#generate_representation_bias(detailed_levels)
-
-print("\n4. Omitted Variable Bias:")
-generate_omitted_variable_bias(detailed_levels)
-
-print("\n5. Label Noise Series:")
-generate_label_noise(detailed_levels)
-
-print("\n✓ All datasets generated!")
-print("\nDataset Categories:")
-print("  • hist_bias_Q_lq_*    - Historical bias on feature Q")
-print("  • hist_bias_R_lhr_*   - Historical bias on feature R")
-print("  • hist_bias_Y_ly_*    - Historical bias on target Y")
-print("  • interaction_bias_*   - Interaction proxy bias")
-print("  • meas_bias_R_lm_*    - Measurement bias on R")
-print("  • meas_bias_Y_lmy_*   - Measurement bias on Y")
-print("  • undersample_pu_*    - Simple undersampling of A=1")
-print("  • representation_bias - Conditional undersampling")
-print("  • omitted_var_bias    - Omitted variable R")
-print("  • label_noise_sy_*    - Label noise")
+if __name__ == "__main__":
+    print("\n" + "="*80)
+    print("COMPREHENSIVE BIASONDEMAND DATASET GENERATION")
+    print("="*80)
+    print("\nGenerating all bias types in logical order:")
+    print("  1. Historical Bias (Y, Q, R, Interaction)")
+    print("  2. Measurement Bias (Y linear, Y non-linear, R)")
+    print("  3. Representation Bias (Undersampling, Conditional)")
+    print("  4. Omitted Variable Bias")
+    print("  5. Label Noise")
+    print("\n" + "="*80 + "\n")
+    
+    # Define levels for continuous parameters
+    standard_levels = [0.00, 0.10, 0.20, 0.30, 0.40, 0.50, 
+                       0.60, 0.70, 0.80, 0.90, 1.00]
+    
+    undersampling_levels = [0.00, 0.10, 0.30, 0.50, 0.70, 0.90]
+    
+    noise_levels = [0.00, 0.50, 1.00, 2.00, 3.00, 5.00]
+    
+    # CATEGORY 1: HISTORICAL BIAS (Most Important)
+    generate_historical_bias_Y(standard_levels)      # Most severe
+    generate_historical_bias_Q(standard_levels)      # Feature bias
+    generate_historical_bias_R(standard_levels)      # Feature bias
+    generate_interaction_proxy_bias(standard_levels) # Complex bias
+    
+    # CATEGORY 2: MEASUREMENT BIAS
+    generate_measurement_bias_Y_linear(standard_levels)
+    generate_measurement_bias_Y_nonlinear(standard_levels)
+    generate_measurement_bias_R(standard_levels)
+    
+    # CATEGORY 3: REPRESENTATION BIAS
+    generate_undersampling(standard_levels)
+    generate_representation_bias(standard_levels)
+    
+    # CATEGORY 5: LABEL NOISE
+    generate_label_noise(standard_levels)
+    
+    print("\n" + "="*80)
+    print("✓ ALL DATASETS GENERATED SUCCESSFULLY")
+    print("="*80)
+    
+    print("\n📁 DATASET NAMING CONVENTION:")
+    print("  Historical Bias:")
+    print("    • hist_bias_Y_ly_*           - Direct label bias (MOST SEVERE)")
+    print("    • hist_bias_Q_lhq_*          - Feature Q bias")
+    print("    • hist_bias_R_lhr_*          - Feature R bias")
+    print("    • interaction_bias_lyb_*     - Interaction bias")
+    print("\n  Measurement Bias:")
+    print("    • meas_bias_Y_linear_lmy_*   - Y measurement (linear)")
+    print("    • meas_bias_Y_nonlinear_lmy_*- Y measurement (non-linear)")
+    print("    • meas_bias_R_lm_*           - R measurement (proxy)")
+    print("\n  Representation Bias:")
+    print("    • undersample_pu_*           - Simple undersampling")
+    print("    • representation_bias_lr_*   - Conditional undersampling")
+    print("\n  Other:")
+    print("    • omitted_var_bias_lo_*      - Omitted variable R")
+    print("    • label_noise_sy_*           - Random label noise")
+    print("    • baseline                   - No bias (fair)")
+    
+    print("\n" + "="*80)
+    print("🎯 READY FOR FAIRNESS EVALUATION!")
+    print("="*80)
+    print("\nExpected fairness degradation:")
+    print("  Historical Y > Historical Q/R > Undersampling > Measurement > Noise")
+    print("\n" + "="*80 + "\n")

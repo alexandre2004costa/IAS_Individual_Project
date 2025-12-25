@@ -28,7 +28,7 @@ def fairness_run(sensitive_attribute, diffs, datasets):
     experiment_directories = []
     for i in diffs:
         for d in datasets:
-            experiment_directories.append(f'datasets/{d}_{i}')
+            experiment_directories.append(f'datasets/{d}{i}')
 
 
     for i, dir_path in enumerate(experiment_directories):
@@ -56,16 +56,16 @@ if __name__ == "__main__":
     detailed_levels = ['0.00', '0.10', '0.20', '0.30', '0.40', '0.50', '0.60', '0.70', '0.80', '0.90', '1.00']
     other_level = ['0.00', '0.20', '0.40', '0.60', '0.80', '1.00', '1.20', '1.50', '2.00']
     datasets = [
-        'hist_bias_Q_lhq',
-        'hist_bias_R_lhr',
-        'hist_bias_Y_ly',
-        'interaction_bias_lyb',
-        'meas_bias_R_lm',
-        #'meas_bias_Y_lmy',
-        #'undersample_pu',
-        #'representation_bias_lr_true',
-        #'omitted_var_bias_lo_true',
-        'label_noise_sy',
+        'hist_bias_Y_ly_',
+        'hist_bias_Q_lhq_',
+        'hist_bias_R_lhr_',
+        'interaction_bias_lyb_',
+        'meas_bias_Y_linear_lmy_',
+        'meas_bias_Y_nonlinear_lmy_',
+        'meas_bias_R_lm_',
+        'undersample_pu_',
+        'representation_bias_lr_true',
+        'label_noise_sy_',
     ]
     #fairness_run(sensitive_attribute='A', diffs = [''], datasets=['baseline'])
     fairness_run(sensitive_attribute='A', diffs = detailed_levels, datasets=datasets)
