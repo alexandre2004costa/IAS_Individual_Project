@@ -54,17 +54,19 @@ def fairness_run(sensitive_attribute, diffs, datasets):
 if __name__ == "__main__":
     light_levels = ['0.0', '0.25', '0.5', '0.75', '1.0']
     detailed_levels = ['0.00', '0.10', '0.20', '0.30', '0.40', '0.50', '0.60', '0.70', '0.80', '0.90', '1.00']
+    other_level = ['0.00', '0.20', '0.40', '0.60', '0.80', '1.00', '1.20', '1.50', '2.00']
     datasets = [
-        'hist_bias_Q_lq',
+        'hist_bias_Q_lhq',
         'hist_bias_R_lhr',
         'hist_bias_Y_ly',
         'interaction_bias_lyb',
         'meas_bias_R_lm',
-        'meas_bias_Y_lmy',
-        'undersample_pu',
+        #'meas_bias_Y_lmy',
+        #'undersample_pu',
         #'representation_bias_lr_true',
-        'omitted_var_bias_lo_true',
+        #'omitted_var_bias_lo_true',
         'label_noise_sy',
     ]
+    #fairness_run(sensitive_attribute='A', diffs = [''], datasets=['baseline'])
     fairness_run(sensitive_attribute='A', diffs = detailed_levels, datasets=datasets)
     

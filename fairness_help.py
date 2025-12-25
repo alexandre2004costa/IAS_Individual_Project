@@ -79,7 +79,11 @@ class FairnessEvaluator:
                 pe = group['fpr'] - ref_group['fpr']
                 
                 # EOR_FNR: Equal Opportunity Ratio based on FNR
-                eor_fnr = group['fnr'] / ref_group['fnr'] if ref_group['fnr'] > 0 else np.inf
+                if ref_group['fnr'] > 0.01:  # Apenas calcula ratio se FNR é significativo
+                    eor_fnr = group['fnr'] / ref_group['fnr']
+                else:
+                    # Quando FNR de referência é próximo de zero, usa diferença absoluta
+                    eor_fnr = 1.0 + (group['fnr'] - ref_group['fnr']) * 10
                 
                 # SP: Statistical Parity (selection rate difference)
                 sp = group['success_rate'] - ref_group['success_rate']
