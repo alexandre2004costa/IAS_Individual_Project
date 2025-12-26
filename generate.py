@@ -243,10 +243,10 @@ def generate_undersampling(undersampling_levels):
     print("3A. UNDERSAMPLING (Simple)")
     print("="*80)
     
-    for p_u_val in undersampling_levels:
+    for p_u_val in undersampling_levels[1:]: # p_u = 0 actually makes balance again, so our range is from 0.1 to the default value 1
         print(f"  Generating p_u={p_u_val:.2f} (removes {p_u_val*100:.0f}% of A=1)")
         biasondemand.generate_dataset(
-            path=f"/undersample_pu_{p_u_val:.2f}",
+            path=f"/undersample_pu_{(1-p_u_val):.2f}", # we do this because p_u = 0.1 actually means 90% of imbalance, so we switch to show the differences growing in the graphs
             dim=15000,  # Larger to have samples left
             p_u=p_u_val,  # ← VARYING THIS (0=fair, 0.9=severe)
             l_y=0, l_m_y=0, l_h_r=0, l_h_q=0, l_m=0,
@@ -270,9 +270,9 @@ def generate_representation_bias(levels):
     print("="*80)
     
     print("  Generating l_r=True")
-    for l in levels:
+    for l in levels[1:]: # p_u = 0 actually makes balance again, so our range is from 0.1 to the default value 1
         biasondemand.generate_dataset(
-            path=f"/representation_bias_lr_true{l:.2f}",
+            path=f"/representation_bias_lr_true{(1-l):.2f}",
             dim=15000,
             l_r=True,  # ← ENABLING THIS
             p_u=l,  # Need some undersampling for l_r to matter
@@ -352,6 +352,8 @@ if __name__ == "__main__":
     generate_measurement_bias_R(standard_levels)
     
     # CATEGORY 3: REPRESENTATION BIAS
+    # FOR THIS: 0.1 is the most severe difference
+    # 0.0 and 1.0 are the same, represent no diff
     generate_undersampling(standard_levels)
     generate_representation_bias(standard_levels)
     

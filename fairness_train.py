@@ -28,10 +28,13 @@ def fairness_run(sensitive_attribute, diffs, datasets):
     experiment_directories = []
     for i in diffs:
         for d in datasets:
+            if (d == 'undersample_pu_' or d == 'representation_bias_lr_true') and i == '1.00':
+                continue
             experiment_directories.append(f'datasets/{d}{i}')
 
 
     for i, dir_path in enumerate(experiment_directories):
+
         print(f"\Processing: {dir_path.split('/')[-1]}")
         X_train, y_train, X_test, y_test = load_data(dir_path)
         print(f"\nPre-split data received:")

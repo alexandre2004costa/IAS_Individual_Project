@@ -155,6 +155,8 @@ if __name__ == "__main__":
     all_datasets = []
     for i in detailed_levels:
         for d in datasets:
+            if (d == 'undersample_pu_' or d == 'representation_bias_lr_true') and i == '1.00':
+                continue
             all_datasets.append(f'{d}{i}')
 
     results = evaluate_all_datasets_simplified_dox(

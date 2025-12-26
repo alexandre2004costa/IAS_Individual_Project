@@ -15,10 +15,10 @@ without the computational complexity of full NLP processing.
 import numpy as np
 import pandas as pd
 import shap
+import os
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
-from scipy.stats import spearmanr
 from typing import Dict, List, Tuple, Optional
 import warnings
 warnings.filterwarnings('ignore')
@@ -440,6 +440,7 @@ class SimplifiedDoXEvaluator:
     
     def save_results(self, filepath):
         """Save results to CSV."""
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
         df = self.results_to_dataframe()
         df.to_csv(filepath, index=False)
         print(f"\n✓ Results saved to {filepath}")

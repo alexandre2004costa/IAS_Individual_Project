@@ -16,6 +16,8 @@ datasets = [
 
 for i in detailed_levels:
     for d in datasets:
+        if (d == 'undersample_pu_' or d == 'representation_bias_lr_true') and i == '1.00':
+            continue
         dataset = 'datasets/' + d + i
         X_train = pd.read_csv(f'{dataset}/X_train.csv', index_col=0)
         X_test = pd.read_csv(f'{dataset}/X_test.csv', index_col=0)

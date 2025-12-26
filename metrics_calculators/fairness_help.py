@@ -4,6 +4,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
 from typing import Dict, List, Tuple, Optional
+import os
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -356,6 +357,7 @@ class FairnessEvaluator:
         filepath : str
             Path to save the CSV file
         """
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
         df = self.results_to_dataframe()
         df = df[1:]
         df.to_csv(filepath, index=False)
