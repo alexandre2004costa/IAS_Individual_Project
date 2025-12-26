@@ -98,25 +98,35 @@ class SimplifiedRobustnessEvaluator:
         return self.results
 
     def results_to_dataframe(self):
-        """Convert nested results to a flat DataFrame for CSV storage."""
+        """Convert results to a single-row DataFrame with weighted averages."""
         if not self.results:
             raise ValueError("No results available. Run evaluate() first.")
         
-        rows = []
-        for _, stats in self.results['group_results'].items():
-            row = {
-                'model_type': self.results['model_type'],
-                'sensitive_attribute': self.results['sensitive_attribute'],
-                'group': stats['group'],
-                'n_samples': stats['n_samples'],
-                'stability': stats['stability'],
-                'resilience': stats['resilience'],
-                'reliability': stats['reliability'],
-                'overall_robustness': stats['overall_robustness'],
-                'robustness_gap': self.results['robustness_gap']
-            }
-            rows.append(row)
-        return pd.DataFrame(rows)
+        # Extract stats from all groups
+        group_stats = list(self.results['group_results'].values())
+        total_samples = sum(s['n_samples'] for s in group_stats)
+        
+        # Calculate weighted averages for each metric
+        # Formula: sum(metric * n_samples) / total_samples
+        w_stability = sum(s['stability'] * s['n_samples'] for s in group_stats) / total_samples
+        w_resilience = sum(s['resilience'] * s['n_samples'] for s in group_stats) / total_samples
+        w_reliability = sum(s['reliability'] * s['n_samples'] for s in group_stats) / total_samples
+        w_overall = sum(s['overall_robustness'] * s['n_samples'] for s in group_stats) / total_samples
+        
+        # Construct single row
+        summary_row = {
+            'model_type': self.results['model_type'],
+            'sensitive_attribute': self.results['sensitive_attribute'],
+            'group': 'All_Combined',
+            'n_samples': total_samples,
+            'stability': w_stability,
+            'resilience': w_resilience,
+            'reliability': w_reliability,
+            'overall_robustness': w_overall,
+            'robustness_gap': self.results['robustness_gap']
+        }
+        
+        return pd.DataFrame([summary_row])
 
     def save_results(self, filepath):
         """Save results to CSV, creating the directory if needed."""

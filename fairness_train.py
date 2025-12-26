@@ -51,6 +51,7 @@ def fairness_run(sensitive_attribute, diffs, datasets):
         ress = calculate_overall_fairness_score(results)
         print(f"Overall Fairness Score: {ress:.4f} (lower is better)")
 
+
 if __name__ == "__main__":
     light_levels = ['0.0', '0.25', '0.5', '0.75', '1.0']
     detailed_levels = ['0.00', '0.10', '0.20', '0.30', '0.40', '0.50', '0.60', '0.70', '0.80', '0.90', '1.00']
