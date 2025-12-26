@@ -8,7 +8,7 @@ import biasondemand
 # l_h_r = 1.5  ← NOT 0! (historical bias on R)
 # l_h_q = 1    ← NOT 0! (historical bias on Q)
 # l_m = 1      ← NOT 0! (measurement bias on R)
-# p_u = 1      ← NOT 0! (100% undersampling = removes ALL A=1!)
+# p_u = 1      ← NOT 0! (100% undersampling)
 # l_q = 2      ← NOT 0! (importance of Q for Y)
 # sy = 5       ← NOT 0! (label noise)
 # l_m_y = 0    ✓ Zero
@@ -23,7 +23,7 @@ import biasondemand
 biasondemand.generate_dataset(
     path="/baseline_",
     dim=10000,
-    l_y=0, l_m_y=0, l_h_r=0, l_h_q=0, l_m=0, p_u=0,
+    l_y=0, l_m_y=0, l_h_r=0, l_h_q=0, l_m=0,p_u=0,
     l_r=False, l_o=False, l_y_b=0, l_q=0, sy=0, l_r_q=0,
     thr_supp=1, l_m_y_non_linear=False
 )
@@ -53,7 +53,7 @@ def generate_historical_bias_Y(bias_levels):
             path=f"/hist_bias_Y_ly_{l_y_val:.2f}",
             dim=10000,
             l_y=l_y_val,  # ← VARYING THIS
-            l_m_y=0, l_h_r=0, l_h_q=0, l_m=0, p_u=0,
+            l_m_y=0, l_h_r=0, l_h_q=0, l_m=0,p_u=0,
             l_r=False, l_o=False, l_y_b=0, l_q=0, sy=0, l_r_q=0,
             thr_supp=1, l_m_y_non_linear=False
         )
@@ -79,7 +79,7 @@ def generate_historical_bias_Q(bias_levels):
             path=f"/hist_bias_Q_lhq_{l_h_q_val:.2f}",
             dim=10000,
             l_h_q=l_h_q_val,  # ← VARYING THIS
-            l_y=0, l_m_y=0, l_h_r=0, l_m=0, p_u=0,
+            l_y=0, l_m_y=0, l_h_r=0, l_m=0,p_u=0,
             l_r=False, l_o=False, l_y_b=0, l_q=0, sy=0, l_r_q=0,
             thr_supp=1, l_m_y_non_linear=False
         )
@@ -105,7 +105,7 @@ def generate_historical_bias_R(bias_levels):
             path=f"/hist_bias_R_lhr_{l_h_r_val:.2f}",
             dim=10000,
             l_h_r=l_h_r_val,  # ← VARYING THIS
-            l_y=0, l_m_y=0, l_h_q=0, l_m=0, p_u=0,
+            l_y=0, l_m_y=0, l_h_q=0, l_m=0,p_u=0,
             l_r=False, l_o=False, l_y_b=0, l_q=0, sy=0, l_r_q=0,
             thr_supp=1, l_m_y_non_linear=False
         )
@@ -131,7 +131,7 @@ def generate_interaction_proxy_bias(bias_levels):
             path=f"/interaction_bias_lyb_{l_y_b_val:.2f}",
             dim=10000,
             l_y_b=l_y_b_val,  # ← VARYING THIS
-            l_y=0, l_m_y=0, l_h_r=0, l_h_q=0, l_m=0, p_u=0,
+            l_y=0, l_m_y=0, l_h_r=0, l_h_q=0, l_m=0,p_u=0,
             l_r=False, l_o=False, l_q=0, sy=0, l_r_q=0,
             thr_supp=1, l_m_y_non_linear=False
         )
@@ -163,7 +163,7 @@ def generate_measurement_bias_Y_linear(bias_levels):
             dim=10000,
             l_m_y=l_m_y_val,  # ← VARYING THIS
             l_m_y_non_linear=False,  # Linear measurement bias
-            l_y=0, l_h_r=0, l_h_q=0, l_m=0, p_u=0,
+            l_y=0, l_h_r=0, l_h_q=0, l_m=0,p_u=0,
             l_r=False, l_o=False, l_y_b=0, l_q=0, sy=0, l_r_q=0,
             thr_supp=1
         )
@@ -190,7 +190,7 @@ def generate_measurement_bias_Y_nonlinear(bias_levels):
             dim=10000,
             l_m_y=l_m_y_val,  # ← VARYING THIS
             l_m_y_non_linear=True,  # Non-linear measurement bias
-            l_y=0, l_h_r=0, l_h_q=0, l_m=0, p_u=0,
+            l_y=0, l_h_r=0, l_h_q=0, l_m=0,p_u=0,
             l_r=False, l_o=False, l_y_b=0, l_q=0, sy=0, l_r_q=0,
             thr_supp=1
         )
@@ -216,7 +216,7 @@ def generate_measurement_bias_R(bias_levels):
             path=f"/meas_bias_R_lm_{l_m_val:.2f}",
             dim=10000,
             l_m=l_m_val,  # ← VARYING THIS (R → P proxy)
-            l_y=0, l_m_y=0, l_h_r=0, l_h_q=0, p_u=0,
+            l_y=0, l_m_y=0, l_h_r=0, l_h_q=0,p_u=0,
             l_r=False, l_o=False, l_y_b=0, l_q=0, sy=0, l_r_q=0,
             thr_supp=1, l_m_y_non_linear=False
         )
@@ -224,7 +224,7 @@ def generate_measurement_bias_R(bias_levels):
 
 
 # =============================================================================
-# CATEGORY 3: REPRESENTATION BIAS (Sampling Issues)
+# CATEGORY 3: REPRESENTATION BIAS (Sampling Issues) IMBALANCE
 # =============================================================================
 # Some groups under/over-represented in data
 
@@ -284,7 +284,7 @@ def generate_representation_bias(levels):
 
 
 # =============================================================================
-# CATEGORY 5: LABEL NOISE (Not Bias - Performance Degradation)
+# CATEGORY 4: LABEL NOISE (Not Bias - Performance Degradation)
 # =============================================================================
 # Random errors in labels (affects both groups)
 
@@ -309,7 +309,7 @@ def generate_label_noise(noise_levels):
             path=f"/label_noise_sy_{sy_val:.2f}",
             dim=10000,
             sy=sy_val,  # ← VARYING THIS
-            l_y=0, l_m_y=0, l_h_r=0, l_h_q=0, l_m=0, p_u=0,
+            l_y=0, l_m_y=0, l_h_r=0, l_h_q=0, l_m=0,p_u=0,
             l_r=False, l_o=False, l_y_b=0, l_q=0, l_r_q=0,
             thr_supp=1, l_m_y_non_linear=False
         )

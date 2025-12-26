@@ -142,16 +142,6 @@ They **break the fairness** by making A (protected attribute) inappropriately in
 
 ---
 
-### **4. Omitted Variable Bias**
-
-#### **`l_o=True` - Omitted Variable**
-- **What it does**: Removes R (or P) from the dataset entirely
-- **Real example**: Important feature not collected (e.g., no income data)
-- **Effect on data**: R column is deleted, can't be used for prediction
-- **Fairness impact**: Model relies on proxies of R that may correlate with A
-
----
-
 ## 📈 How Parameters Affect Fairness Metrics
 
 ### **Expected Impact on Your Fairness Metrics:**
