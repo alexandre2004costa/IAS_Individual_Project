@@ -1,219 +1,435 @@
-# BiasOnDemand Dataset: Complete Explanation
-## Understanding the Data Structure and Parameters
+# BiasOnDemand Dataset Generation: Complete Guide
+## Understanding Synthetic Data Generation for Bias Research
 
-## 📊 Core Dataset Structure
+---
 
-BiasOnDemand generates synthetic datasets based on a **causal model** with the following core variables:
+## 📊 Overview
+
+BiasOnDemand is a Python library that generates synthetic datasets with **controllable bias parameters**. It creates data based on a **causal model** that simulates real-world scenarios where bias can enter at different stages of the data generation process.
+
+**Key Features:**
+- Generate datasets with precise control over bias types and magnitudes
+- Simulate various real-world bias scenarios (hiring, lending, healthcare, etc.)
+- Isolate individual bias types for systematic study
+- Create baseline (unbiased) datasets for comparison
+
+---
+
+## 🏗️ Core Data Structure
+
+BiasOnDemand generates datasets based on a **structural causal model** with four core variables:
+
+```
+Causal Structure:
+    A → Q → Y
+      ↘ R ↗
+```
 
 ### **The 4 Main Variables:**
 
-```
-A → Q → Y  (Causal Chain)
-  ↘ R ↗
-```
+| Variable | Type | Description | Example |
+|----------|------|-------------|---------|
+| **A** | Binary (0, 1) | **Protected/Sensitive Attribute**<br>• A=0: Reference group (unprivileged)<br>• A=1: Protected group (where bias affects) | Gender (0=Female, 1=Male)<br>Race (0=Majority, 1=Minority) |
+| **R** | Continuous | **Feature Variable**<br>• Causally influenced by A<br>• Important predictor of Y | Income level<br>Years of experience |
+| **Q** | Continuous | **Feature Variable**<br>• Causally influenced by both A and R<br>• Important predictor of Y | Credit score<br>Performance rating |
+| **Y** | Binary (0, 1) | **Target/Outcome Variable**<br>• The prediction target<br>• Depends on Q, R, and optionally A | Loan approval<br>Hired/Not hired |
 
-| Variable | Name | Type | Description |
-|----------|------|------|-------------|
-| **A** | Protected Attribute | Binary (0 or 1) | The sensitive/protected group membership<br>• A=0: Reference/unprivileged group<br>• A=1: Group where bias is introduced |
-| **R** | Feature Variable | Continuous | An important feature that influences Y<br>• Causally depends on A<br>• Can be biased or measured incorrectly |
-| **Q** | Feature Variable | Continuous | Another important feature that influences Y<br>• Causally depends on both A and R<br>• Can be biased historically |
-| **Y** | Target/Label | Binary (0 or 1) | The outcome you want to predict<br>• Depends on Q, R, and potentially A<br>• Can be biased or measured incorrectly |
-
-### **Additional Variables (Generated):**
-- **P**: Proxy for R when measurement bias is applied (`l_m > 0`)
-- **Additional noise features**: Random features with varying correlation to A
+### **Additional Generated Variables:**
+- **P**: Proxy for R (only present when measurement bias is applied, `l_m > 0`)
+- **Additional features**: Random noise features with varying correlation to A
 
 ---
 
-## 🔍 The Causal Story
+## 🔧 Generation Function Signature
 
-Think of it like a **loan application system**:
-
-| Variable | Real-World Example |
-|----------|-------------------|
-| **A** | Gender (0=Female, 1=Male) or Race (0=White, 1=Black) |
-| **R** | Income level |
-| **Q** | Credit score (influenced by both gender/race AND income) |
-| **Y** | Loan approval (0=Rejected, 1=Approved) |
-
-### **How it works (Unbiased Case):**
-1. Your **income (R)** depends partially on random factors
-2. Your **credit score (Q)** is calculated based on your income (R)
-3. **Loan approval (Y)** depends on your credit score (Q) and income (R)
-4. Your **gender/race (A)** shouldn't matter - but with bias, it does!
-
-### **What bias parameters do:**
-They **break the fairness** by making A (protected attribute) inappropriately influence R, Q, or Y.
+```python
+biasondemand.generate_dataset(
+    path='my_dataset',           # Output directory
+    dim=15000,                    # Number of samples
+    l_y=4,                        # Historical bias on Y
+    l_m_y=0,                      # Measurement bias on Y (linear)
+    thr_supp=1,                   # Feature suppression threshold
+    l_h_r=1.5,                    # Historical bias on R
+    l_h_q=1,                      # Historical bias on Q
+    l_m=1,                        # Measurement bias on R
+    p_u=1,                        # Undersampling proportion
+    l_r=False,                    # Conditional representation bias
+    l_o=False,                    # Omitted variable
+    l_y_b=0,                      # Interaction proxy bias
+    l_q=2,                        # Importance of Q for Y
+    sy=5,                         # Label noise std deviation
+    l_r_q=0,                      # R to Q influence
+    l_m_y_non_linear=False        # Non-linear measurement bias flag
+)
+```
 
 ---
 
-## 🎛️ Dataset Generation Parameters
+## 📖 Parameter Definitions
 
-### **Basic Parameters:**
+### **Basic Parameters**
 
-| Parameter | Description | Default | Effect |
-|-----------|-------------|---------|--------|
-| `dim` | Number of samples | 10000 | Dataset size |
-| `sy` | Label noise std dev | 0.0 | Adds random noise to Y (0=clean, higher=noisier) |
-| `l_q` | Importance of Q for Y | 0.0 | How much Q influences Y (structural) |
-| `l_r_q` | Influence of R on Q | 0.0 | Causal link strength R→Q |
-| `thr_supp` | Correlation threshold | 1.0 | Removes features too correlated with A |
+#### **`path`** (string)
+- **Default**: `'my_new_dataset'`
+- **Description**: Directory path where the generated dataset will be saved
+- **Creates**: Four CSV files: `X_train.csv`, `X_test.csv`, `y_train.csv`, `y_test.csv`
 
----
-
-## 🚨 Bias Parameters - Detailed Explanation
-
-### **1. Historical Bias** (Bias in the Real World)
-*These biases existed in reality and got into the data*
-
-#### **`l_h_q` - Historical Bias on Q**
-- **What it does**: Makes Q systematically lower for group A=1
-- **Real example**: Credit scores are systematically lower for minority groups due to historical discrimination
-- **Effect on data**: Q values for A=1 are reduced
-- **Fairness impact**: Model learns to penalize A=1 even if Q shouldn't depend on A
-
-```python
-# Without bias: Q_A=0 = Q_A=1 (on average)
-# With l_h_q=0.5: Q_A=1 < Q_A=0 (A=1 has lower Q values)
-```
-
-#### **`l_h_r` - Historical Bias on R**
-- **What it does**: Makes R systematically lower for group A=1
-- **Real example**: Income (R) is lower for women due to historical pay gaps
-- **Effect on data**: R values for A=1 are reduced
-- **Fairness impact**: Legitimate feature R now correlates with A
-
-#### **`l_y` - Historical Bias on Y (Direct Label Bias)**
-- **What it does**: Makes Y=1 less likely for group A=1, *independent of features*
-- **Real example**: Loan officers historically approved fewer loans for minorities even with same qualifications
-- **Effect on data**: Y is directly reduced for A=1
-- **Fairness impact**: **Most severe** - direct discrimination in labels
-
-#### **`l_y_b` - Interaction Proxy Bias**
-- **What it does**: Complex bias where A=1 with high R values get lower Y
-- **Real example**: High-earning minorities face discrimination ("they don't need help")
-- **Effect on data**: For A=1 AND high R → lower Y
-- **Fairness impact**: Non-linear discrimination pattern
+#### **`dim`** (int)
+- **Default**: `15000`
+- **Description**: Total number of samples to generate (before any undersampling)
+- **Range**: Typically 1000-100000
+- **Usage**: Larger values provide more statistical power but take longer to generate
 
 ---
 
-### **2. Measurement Bias** (Bias in How We Measure)
-*Variables are measured incorrectly*
+### **Historical Bias Parameters**
+*Bias that exists in the real world and gets captured in data*
 
-#### **`l_m` - Measurement Bias on R**
-- **What it does**: R is observed through a noisy proxy P instead
-- **Real example**: Income self-reported (P) vs actual income (R)
-- **Effect on data**: Column R is replaced by P which has measurement error
-- **Fairness impact**: Model uses inaccurate feature, different errors for different groups
+#### **`l_h_q`** (float)
+- **Default**: `1.0`
+- **Parameter Type**: Historical bias coefficient
+- **What it controls**: Systematic reduction of Q values for group A=1
+- **Range**: `0.0` (no bias) to `2.0+` (severe bias)
+- **Effect**: 
+  - Q values for A=1 become systematically lower
+  - Simulates historical disadvantage in feature Q
+- **Example**: Credit scores historically lower for minorities
+- **Zero for no bias**: Set to `0.0`
 
-```python
-# If l_m > 0: You get P (proxy) instead of R (true value)
-# P = R + noise (measurement error)
-```
+#### **`l_h_r`** (float)
+- **Default**: `1.5`
+- **Parameter Type**: Historical bias coefficient
+- **What it controls**: Systematic reduction of R values for group A=1
+- **Range**: `0.0` (no bias) to `2.0+` (severe bias)
+- **Effect**:
+  - R values for A=1 become systematically lower
+  - Creates correlation between A and legitimate feature R
+- **Example**: Gender pay gap (income lower for women)
+- **Zero for no bias**: Set to `0.0`
 
-#### **`l_m_y` - Measurement Bias on Y**
-- **What it does**: Y labels are measured with error (mislabeled)
-- **Real example**: Recidivism prediction where arrests (Y) don't equal actual crimes
-- **Effect on data**: Some Y=0 become Y=1 and vice versa
-- **Fairness impact**: Training on wrong labels, error rates differ by group
+#### **`l_y`** (float)
+- **Default**: `4.0`
+- **Parameter Type**: Historical bias coefficient
+- **What it controls**: Direct reduction in Y=1 probability for group A=1
+- **Range**: `0.0` (no bias) to `5.0+` (severe bias)
+- **Effect**:
+  - Y=1 becomes less likely for A=1, **independent of features**
+  - This is **direct discrimination** in labels
+  - **Most severe** type of bias
+- **Example**: Loan officers approving fewer loans for minorities regardless of qualifications
+- **Zero for no bias**: Set to `0.0`
 
----
-
-### **3. Representation Bias** (Bias in Who's in the Data)
-*Some groups are under/over-represented*
-
-#### **`p_u` - Undersampling of A=1**
-- **What it does**: Removes percentage p_u of samples where A=1
-- **Real example**: Only 10% of loan applications from minorities in dataset
-- **Effect on data**: Fewer samples for A=1 group
-- **Values**: 
-  - `p_u=0.0` → Keep all A=1 samples (balanced)
-  - `p_u=0.5` → Remove 50% of A=1 samples
-  - `p_u=0.9` → Remove 90% of A=1 samples (severe imbalance)
-- **Fairness impact**: Model has less data to learn about A=1, worse predictions
-
-**⚠️ IMPORTANT**: Higher p_u = MORE bias (opposite of other lambda parameters)
-
-#### **`l_r=True` - Representation Bias (Conditional)**
-- **What it does**: Undersamples A=1 *conditional on R values*
-- **Real example**: High-income minorities are rare in dataset (conditional undersampling)
-- **Effect on data**: Removes A=1 samples preferentially when R is high/low
-- **Fairness impact**: Model never sees certain (A, R) combinations
-
----
-
-## 📈 How Parameters Affect Fairness Metrics
-
-### **Expected Impact on Your Fairness Metrics:**
-
-| Bias Type | ↑ Parameter | DI | SP | EOD | AOD | Effect |
-|-----------|------------|----|----|-----|-----|---------|
-| **Historical (Q, R, Y)** | ↑ l_h_q, l_h_r, l_y | ↓ | ↓ (more negative) | ↑ | ↓ (more negative) | A=1 disadvantaged |
-| **Measurement (R, Y)** | ↑ l_m, l_m_y | ↓ | ↓ | ↑ | Varies | Noisy predictions |
-| **Undersampling** | ↑ p_u | ↓ | ↓ | ↑ | ↓ | Less data for A=1 |
-| **Label Noise** | ↑ sy | ~1.0 | ~0.0 | ↑ | ~0.0 | Random degradation |
+#### **`l_y_b`** (float)
+- **Default**: `0.0`
+- **Parameter Type**: Interaction proxy bias coefficient
+- **What it controls**: Non-linear bias where A=1 with **high R values** get lower Y
+- **Range**: `0.0` (no bias) to `2.0+` (strong interaction bias)
+- **Effect**:
+  - Creates complex discrimination pattern
+  - Bias depends on interaction between A and R
+  - High-R individuals in A=1 are particularly disadvantaged
+- **Example**: High-earning minorities face discrimination
+- **Zero for no bias**: Keep at `0.0`
 
 ---
 
-## 🎯 What Each Bias Parameter Actually Changes in Your Data
+### **Measurement Bias Parameters**
+*Bias introduced through incorrect or noisy measurement*
 
-### **Baseline (No Bias):**
+#### **`l_m_y`** (float)
+- **Default**: `0.0`
+- **Parameter Type**: Measurement bias coefficient
+- **What it controls**: Magnitude of measurement error in Y labels
+- **Range**: `0.0` (no error) to `2.0+` (high error)
+- **Effect**:
+  - Y labels become noisy/mislabeled
+  - Error can differ systematically between groups
+  - Works with `l_m_y_non_linear` flag
+- **Example**: Recidivism measured by arrests (proxy) not actual re-offending
+- **Zero for no bias**: Keep at `0.0`
+
+#### **`l_m_y_non_linear`** (boolean)
+- **Default**: `False`
+- **Parameter Type**: Measurement bias type flag
+- **What it controls**: Whether measurement bias on Y is linear or non-linear
+- **Values**:
+  - `False`: Linear measurement bias (error proportional to value)
+  - `True`: Non-linear measurement bias (error conditional on R values)
+- **Effect**:
+  - Changes how `l_m_y` affects the data
+  - Non-linear creates more complex error patterns
+- **Usage**: Only matters when `l_m_y > 0`
+- **Zero for no bias**: Set to `False`
+
+#### **`l_m`** (float)
+- **Default**: `1.0`
+- **Parameter Type**: Measurement bias coefficient
+- **What it controls**: Magnitude of measurement error in R
+- **Range**: `0.0` (no error) to `2.0+` (high error)
+- **Effect**:
+  - When `l_m > 0`, true variable R is replaced by noisy proxy P
+  - P = R + measurement_error
+  - Model sees P instead of true R
+- **Example**: Self-reported income (P) vs actual income (R)
+- **Zero for no bias**: Set to `0.0`
+
+---
+
+### **Representation Bias Parameters**
+*Bias from sampling/selection process*
+
+#### **`p_u`** (float)
+- **Default**: `1.0`
+- **Parameter Type**: Undersampling proportion
+- **What it controls**: Percentage of A=1 samples to **remove**
+- **Range**: `0.0` (keep all) to `1.0` (remove all)
+- **Effect**:
+  - Removes proportion `p_u` of A=1 samples from dataset
+  - Creates imbalanced dataset
+  - Final A=1 count ≈ original_count × (1 - p_u)
+- **Example**: 
+  - `p_u=0.0`: Keep all A=1 samples (balanced)
+  - `p_u=0.5`: Remove 50% of A=1 samples
+  - `p_u=0.9`: Remove 90% of A=1 samples (severe imbalance)
+- **⚠️ WARNING**: `p_u=1.0` removes **ALL** A=1 samples (extreme)
+- **Zero for no bias**: Set to `0.0`
+
+#### **`l_r`** (boolean)
+- **Default**: `False`
+- **Parameter Type**: Conditional representation bias flag
+- **What it controls**: Whether undersampling is conditional on R values
+- **Values**:
+  - `False`: Simple random undersampling (if `p_u > 0`)
+  - `True`: Undersampling conditional on R (non-random)
+- **Effect**:
+  - When `True`: A=1 samples preferentially removed when R is high/low
+  - Creates more complex selection bias
+  - Certain (A, R) combinations become rare
+- **Example**: High-income minorities underrepresented in dataset
+- **Usage**: Only meaningful when `p_u > 0`
+- **Zero for no bias**: Set to `False`
+
+---
+
+### **Structural Parameters**
+*Control the causal structure and relationships*
+
+#### **`l_q`** (float)
+- **Default**: `2.0`
+- **Parameter Type**: Structural coefficient
+- **What it controls**: How strongly Q influences Y in the causal model
+- **Range**: `0.0` (Q doesn't matter) to `5.0+` (Q very important)
+- **Effect**:
+  - Higher values make Q a stronger predictor of Y
+  - Changes the relative importance of Q vs R
+  - Structural, not bias-related
+- **Example**: How much credit score matters for loan approval
+- **Zero for minimal influence**: Set to `0.0`
+
+#### **`l_r_q`** (float)
+- **Default**: `0.0`
+- **Parameter Type**: Structural coefficient
+- **What it controls**: Causal influence from R to Q
+- **Range**: `0.0` (no influence) to `2.0+` (strong influence)
+- **Effect**:
+  - Higher values make Q more dependent on R
+  - Creates stronger causal chain A→R→Q→Y
+  - Structural, not bias-related
+- **Example**: Income affecting credit score calculation
+- **Zero for no influence**: Keep at `0.0`
+
+---
+
+### **Other Parameters**
+
+#### **`l_o`** (boolean)
+- **Default**: `False`
+- **Parameter Type**: Omitted variable flag
+- **What it controls**: Whether important variable R (or P) is excluded from dataset
+- **Values**:
+  - `False`: R/P included in dataset
+  - `True`: R/P completely removed (omitted variable bias)
+- **Effect**:
+  - When `True`: Dataset lacks important predictor
+  - Model forced to use proxies that may correlate with A
+  - Simulates missing important information
+- **Example**: Dataset lacks income information for loan prediction
+- **Zero for no bias**: Set to `False`
+
+#### **`sy`** (float)
+- **Default**: `5.0`
+- **Parameter Type**: Label noise standard deviation
+- **What it controls**: Amount of random noise added to Y labels
+- **Range**: `0.0` (no noise) to `10.0+` (very noisy)
+- **Effect**:
+  - Adds random Gaussian noise to Y generation
+  - Affects both groups equally (not systematic bias)
+  - Simulates natural variability or errors
+  - Higher values → more label flips (0↔1)
+- **Example**: Random errors in medical diagnoses
+- **Zero for no noise**: Set to `0.0`
+
+#### **`thr_supp`** (float)
+- **Default**: `1.0`
+- **Parameter Type**: Suppression threshold
+- **What it controls**: Removes features too strongly correlated with A
+- **Range**: `0.0` to `1.0`
+- **Effect**:
+  - Features with correlation to A above threshold are removed
+  - Higher threshold → more features kept
+  - `1.0` effectively disables suppression
+- **Example**: Remove features that directly reveal protected attribute
+- **Standard setting**: Keep at `1.0`
+
+---
+
+## 🎯 Parameter Combinations for Common Scenarios
+
+### **Scenario 1: Pure Baseline (No Bias)**
 ```python
-biasondemand.generate_dataset(path="/baseline", dim=10000)
-# Result: Fair dataset where A doesn't influence outcomes
-# DI ≈ 1.0, SP ≈ 0.0, EOD ≈ 0.0
+biasondemand.generate_dataset(
+    path="/baseline",
+    dim=10000,
+    l_y=0.0,          # No historical bias on Y
+    l_h_r=0.0,        # No historical bias on R
+    l_h_q=0.0,        # No historical bias on Q
+    l_m=0.0,          # No measurement bias on R
+    l_m_y=0.0,        # No measurement bias on Y
+    p_u=0.0,          # No undersampling
+    l_r=False,        # No conditional bias
+    l_o=False,        # Include all variables
+    l_y_b=0.0,        # No interaction bias
+    sy=0.0,           # No label noise
+    l_q=0.0,          # Q doesn't influence Y structurally
+    l_r_q=0.0,        # R doesn't influence Q
+    thr_supp=1.0
+)
+```
+**Result**: Fair dataset where A doesn't influence outcomes
+
+---
+
+### **Scenario 2: Historical Feature Bias Only**
+```python
+biasondemand.generate_dataset(
+    path="/hist_bias_features",
+    dim=10000,
+    l_h_r=0.5,        # Moderate bias on R
+    l_h_q=0.3,        # Moderate bias on Q
+    # All other bias parameters = 0
+    l_y=0.0, l_m=0.0, l_m_y=0.0, p_u=0.0,
+    l_r=False, l_o=False, l_y_b=0.0, sy=0.0,
+    l_q=0.0, l_r_q=0.0, thr_supp=1.0
+)
+```
+**Result**: R and Q values systematically lower for A=1, but Y not directly biased
+
+---
+
+### **Scenario 3: Direct Label Discrimination**
+```python
+biasondemand.generate_dataset(
+    path="/label_discrimination",
+    dim=10000,
+    l_y=1.0,          # Strong direct bias on Y
+    # All other bias parameters = 0
+    l_h_r=0.0, l_h_q=0.0, l_m=0.0, l_m_y=0.0, p_u=0.0,
+    l_r=False, l_o=False, l_y_b=0.0, sy=0.0,
+    l_q=0.0, l_r_q=0.0, thr_supp=1.0
+)
+```
+**Result**: Y=1 less likely for A=1 regardless of features (most severe bias)
+
+---
+
+### **Scenario 4: Severe Imbalance (Undersampling)**
+```python
+biasondemand.generate_dataset(
+    path="/severe_imbalance",
+    dim=15000,        # Start with more samples
+    p_u=0.9,          # Remove 90% of A=1 samples
+    # All other bias parameters = 0
+    l_y=0.0, l_h_r=0.0, l_h_q=0.0, l_m=0.0, l_m_y=0.0,
+    l_r=False, l_o=False, l_y_b=0.0, sy=0.0,
+    l_q=0.0, l_r_q=0.0, thr_supp=1.0
+)
+```
+**Result**: Only 10% of original A=1 samples remain (severe imbalance)
+
+---
+
+### **Scenario 5: Measurement Bias**
+```python
+biasondemand.generate_dataset(
+    path="/measurement_bias",
+    dim=10000,
+    l_m=0.8,          # Strong measurement bias on R
+    l_m_y=0.5,        # Moderate measurement bias on Y (linear)
+    l_m_y_non_linear=False,
+    # All other bias parameters = 0
+    l_y=0.0, l_h_r=0.0, l_h_q=0.0, p_u=0.0,
+    l_r=False, l_o=False, l_y_b=0.0, sy=0.0,
+    l_q=0.0, l_r_q=0.0, thr_supp=1.0
+)
+```
+**Result**: R observed through noisy proxy P, Y labels have errors
+
+---
+
+### **Scenario 6: Label Noise Only**
+```python
+biasondemand.generate_dataset(
+    path="/label_noise",
+    dim=10000,
+    sy=3.0,           # High label noise
+    # All other bias parameters = 0
+    l_y=0.0, l_h_r=0.0, l_h_q=0.0, l_m=0.0, l_m_y=0.0, p_u=0.0,
+    l_r=False, l_o=False, l_y_b=0.0,
+    l_q=0.0, l_r_q=0.0, thr_supp=1.0
+)
+```
+**Result**: Random noise in labels (affects both groups equally)
+
+---
+
+
+## 🔬 Systematic Bias Study: Varying Single Parameters
+
+### **Template for Isolating One Bias Type:**
+```python
+import numpy as np
+
+# Define range of bias levels
+bias_levels = np.arange(0.0, 1.1, 0.1)  # [0.0, 0.1, 0.2, ..., 1.0]
+
+# Generate datasets with varying bias
+for level in bias_levels:
+    biasondemand.generate_dataset(
+        path=f"/hist_bias_Q_level_{level:.2f}",
+        dim=10000,
+        l_h_q=level,      # ← VARY THIS
+        # Set ALL other bias parameters to 0
+        l_y=0.0, l_h_r=0.0, l_m=0.0, l_m_y=0.0, p_u=0.0,
+        l_r=False, l_o=False, l_y_b=0.0, sy=0.0,
+        l_q=0.0, l_r_q=0.0, thr_supp=1.0
+    )
 ```
 
-### **Historical Bias on Q (`l_h_q`):**
-```python
-# l_h_q = 0.3
-# What happens:
-# - Q values for A=1 are reduced by 30%
-# - Model sees: A=1 → lower Q → lower Y
-# - Even though Q SHOULDN'T depend on A!
+This creates 11 datasets with isolated Q bias ranging from 0.0 (none) to 1.0 (severe).
 
-# Your metrics:
-# DI: 1.0 → 0.75 (25% reduction in selection rate)
-# SP: 0.0 → -0.15 (15% lower outcomes for A=1)
-```
 
-### **Direct Label Bias (`l_y`):**
-```python
-# l_y = 0.5
-# What happens:
-# - Y=1 probability directly reduced for A=1
-# - This is pure discrimination - A directly causes Y to change
+---
 
-# Your metrics:
-# DI: 1.0 → 0.60 (40% reduction - SEVERE)
-# SP: 0.0 → -0.30 (30% disparity)
-# EOD: 0.0 → 0.25 (large inequality in error rates)
-```
+## 🎓 Summary
 
-### **Undersampling (`p_u`):**
-```python
-# p_u = 0.7
-# What happens:
-# - 70% of A=1 samples are deleted
-# - Model trained on mostly A=0 examples
-# - Poor performance on A=1 (never seen it much)
+BiasOnDemand provides fine-grained control over **where** and **how much** bias enters your data:
 
-# Your metrics:
-# DI: 1.0 → 0.70
-# EOD: 0.0 → 0.20 (worse predictions for A=1)
-```
+| Bias Entry Point | Parameters | Effect |
+|-----------------|------------|--------|
+| **Historical (real-world)** | `l_h_q`, `l_h_r`, `l_y`, `l_y_b` | Features/labels systematically different for A=1 |
+| **Measurement** | `l_m`, `l_m_y`, `l_m_y_non_linear` | Variables measured incorrectly |
+| **Representation** | `p_u`, `l_r` | Some groups over/under-represented |
+| **Omission** | `l_o` | Important variables missing |
+| **Random** | `sy` | Label noise (not systematic bias) |
 
-### **Label Noise (`sy`):**
-```python
-# sy = 0.3
-# What happens:
-# - 30% noise added to Y labels (random flips)
-# - Affects both groups (not biased, just noisy)
-# - Overall accuracy drops
 
-# Your metrics:
-# DI: ~1.0 (stays fairish)
-# SP: ~0.0 (stays fairish)
-# EOD: 0.0 → 0.15 (randomness affects error rates)
-# Accuracy: drops significantly
-```

@@ -163,6 +163,6 @@ if __name__ == "__main__":
         all_datasets,
         base_dir='datasets',
         output_dir='results/explanation/',
-        top_k=3  # Consider top 3 features
+        top_k=1  # Consider top 3 features
     )
     
