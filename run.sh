@@ -34,7 +34,7 @@ echo -e "${GREEN}✓ Fairness evaluation complete${NC}"
 echo ""
 echo -e "${YELLOW}Step 3: Evaluate explainability (simplified DoX)${NC}"
 echo "This will compute DoX-inspired metrics for all datasets"
-python exokanation_train.py
+python explanation_train.py
 echo -e "${GREEN}✓ Explainability evaluation complete${NC}"
 
 # Step 3: Robustness evaluation
