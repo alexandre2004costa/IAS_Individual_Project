@@ -22,6 +22,7 @@ We evaluate robustness through three distinct "stress tests," answering three cr
 ## 2. Metric Definitions
 
 ### A. Stability Score (The "Flicker" Test)
+Based on "Certified Adversarial Robustness via Randomized Smoothing"(https://arxiv.org/abs/1902.02918). Idea taken: While the paper focuses on "certifying" deep learning, the underlying mechanism—adding Gaussian noise to an input and checking if the prediction stays consistent—is the standard way to quantify a model's local stability.
 *Does the model give consistent answers for virtually identical inputs?*
 
 We take a data point $x$ and generate variations $x'$ by adding small, random Gaussian noise ($\sigma=0.05$). We then check if the model's prediction changes.
@@ -33,6 +34,8 @@ We take a data point $x$ and generate variations $x'$ by adding small, random Ga
 $$\text{Stability} = \frac{1}{N} \sum_{i=1}^{N} (\text{Prediction}(x_i) == \text{Prediction}(x_i + \text{noise}))$$
 
 ### B. Resilience Score (The "Stress" Test)
+Based on "Benchmarking Neural Network Robustness to Common Corruptions and Perturbations"(https://arxiv.org/abs/1903.12261). Idea taken: This work introduced "mCE" (mean Corruption Error). It argues that a model isn't truly robust unless its accuracy stays high when the data is "smeared" or "jittered" by environmental factors.
+
 *How much accuracy is lost when data quality drops?*
 
 Unlike Stability (which checks if the *prediction* changes), Resilience checks if the *correctness* changes. We corrupt the data with significant noise ($\sigma=0.1$) and measure the drop in accuracy.
@@ -43,6 +46,8 @@ Unlike Stability (which checks if the *prediction* changes), Resilience checks i
 * **Interpretation:** A score of $1.0$ means the model is impervious to this level of noise. A score of $0.5$ means half the accuracy was lost.
 
 ### C. Reliability Score (The "Honesty" Test)
+Based on "Understanding Model Calibration - A gentle introduction and visual exploration of calibration and the expected calibration error (ECE)" (https://arxiv.org/html/2501.19047v2#:~:text=This%20definition%20of%20calibration%2C%20ensures,et%20al.%2C%202017). Idea taken: This paper popularized the use of ECE to measure the gap between accuracy and confidence.
+
 *Can we trust the confidence scores?*
 
 This utilizes **Expected Calibration Error (ECE)**. If a weather forecaster predicts rain with 70% confidence 100 times, it should rain exactly 70 of those times. If it rains 100 times, they are under-confident; if it rains 0 times, they are over-confident.
@@ -57,7 +62,9 @@ This utilizes **Expected Calibration Error (ECE)**. If a weather forecaster pred
     2. Gap Analysis: For each bin, we calculate the absolute difference between the average confidence (what the model expected) and the actual accuracy (what actually happened).
 
     3. Weighting: The gaps are averaged, weighted by the number of samples in each bin, to produce the ECE:
-    So the ECE.$$ECE = \sum_{i=1}^{B} \frac{n_i}{N} |acc(i) - conf(i)|$$
+    So the ECE.$$ECE = \sum_{m=1}^{M} \frac{|B_m|}{N} |acc(Bm) - conf(Bm)|$$
+        where B is used for representing ”bins” and m for the bin number, while acc and conf are:
+            - Average Confidence of Bin $m$:$$\text{conf}(B_m) = \frac{1}{|B_m|} \sum_{j \in B_m} \hat{p}_j$$Where $\hat{p}_j$ is the predicted probability (confidence) for sample $j$.Average Accuracy of Bin $m$:$$\text{acc}(B_m) = \frac{1}{|B_m|} \sum_{j \in B_m} \mathbb{m}(\hat{y}_j = y_j)$$
     4.  $\text{Reliability} = 1.0 - \text{ECE}$
     
 
