@@ -21,6 +21,8 @@ Before calculating fairness, the system calculates standard performance metrics 
 These metrics measure the disparity between the **Comparision Group** and the **Reference Group**.
 
 ### A. Selection Disparities (Outcome Fairness)
+Based on class slides and pratical activity on Bias and Fairness
+
 *Does the model approve one group more often than the other?*
 
 #### **DI: Disparate Impact**

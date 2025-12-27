@@ -58,7 +58,7 @@ class SimplifiedRobustnessEvaluator:
             if np.any(mask):
                 bin_acc = np.mean(y[mask])
                 bin_conf = np.mean(probs[mask])
-                ece += np.sum(mask) * np.abs(bin_acc - bin_conf)
+                ece += np.abs(np.sum(mask)) * np.abs(bin_acc - bin_conf)
         return max(1.0 - (ece / len(y)), 0.0)
 
     def evaluate(self, X_train, X_test, y_train, y_test, sensitive_attr):
