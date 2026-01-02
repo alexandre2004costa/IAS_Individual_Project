@@ -105,3 +105,5 @@ The algorithm prioritizes legal and outcome-based fairness (Tier 1) over technic
 1.  **Selection Rates first:** Most fairness audits focus first on *who got selected* (DI/SP).
 2.  **Balanced Errors second:** If selection rates are equal, we check if we are making mistakes equally (EOD).
 3.  **Specific Errors third:** Finally, we look at specific types of errors (False Positives vs False Negatives).
+
+**PS: This file is AI generated with some human changes.**

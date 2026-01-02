@@ -72,3 +72,4 @@ $$\text{DoX} = (0.40 \times \text{Clarity}) + (0.35 \times \text{Distinctiveness
 **The Hypothesis:**
 A model might be accurate for everyone, but *harder to explain* for certain minority groups. This often happens because the model relies on complex, non-linear interactions for outliers or minorities, resulting in "fuzzier" SHAP values.
 
+**PS: This file is AI generated with some human changes.**

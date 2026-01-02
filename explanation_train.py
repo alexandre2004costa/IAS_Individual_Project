@@ -1,10 +1,3 @@
-"""
-Batch Simplified DoX-Inspired Evaluation
-=========================================
-
-Fast evaluation of explanation quality across all datasets.
-"""
-
 import pandas as pd
 import numpy as np
 from pathlib import Path
@@ -12,24 +5,9 @@ from metrics_calculators.dox import dox_inspired_pipeline_presplit
 import time
 
 
-def evaluate_all_datasets_simplified_dox(dataset_paths, base_dir='datasets', 
-                                         output_dir='dox_inspired_results', top_k=3):
-    """
-    Evaluate simplified DoX for multiple datasets.
-    
-    Parameters:
-    -----------
-    dataset_paths : list
-        List of dataset directory names
-    base_dir : str
-        Base directory containing datasets
-    output_dir : str
-        Directory to save results
-    top_k : int
-        Number of top features to consider
-    """
+def evaluate_all_datasets_simplified_dox(dataset_paths, base_dir='datasets', output_dir='dox_inspired_results', top_k=3):
+
     Path(output_dir).mkdir(exist_ok=True)
-    
     all_results = []
     times = []
     
@@ -163,6 +141,6 @@ if __name__ == "__main__":
         all_datasets,
         base_dir='datasets',
         output_dir='results/explanation/',
-        top_k=1  # Consider top 3 features
+        top_k=1  # Consider top feature only
     )
     

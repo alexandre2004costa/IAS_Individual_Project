@@ -81,3 +81,6 @@ $$\text{Robustness} = (0.40 \times \text{Stability}) + (0.30 \times \text{Resili
 | **Stability** | **40%** | The foundation of trust. Inconsistent automated decisions are often illegal or highly liable in regulated industries. |
 | **Resilience** | **30%** | Important for real-world deployment where data is rarely "clean" like the training set. |
 | **Reliability** | **30%** | Critical for "Human-in-the-Loop" systems. Users need to know when to override the AI. |
+
+
+**PS: This file is AI generated with some human changes.**

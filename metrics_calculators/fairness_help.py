@@ -2,9 +2,10 @@ import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import confusion_matrix, accuracy_score, classification_report
+from sklearn.metrics import confusion_matrix, accuracy_score
 from typing import Dict, List, Tuple, Optional
 import os
+from sklearn.preprocessing import LabelEncoder
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -12,30 +13,26 @@ warnings.filterwarnings('ignore')
 class FairnessEvaluator:
     
     def __init__(self, random_state: int = 42):
-
         self.random_state = random_state
         self.model = None
         self.results = {}
     
     @staticmethod
     def _to_numpy(array):
-
         if hasattr(array, 'values'):
             return array.values
         return np.asarray(array)
         
     def calculate_group_metrics(self, y_true: np.ndarray, y_pred: np.ndarray,  group: np.ndarray, group_value) -> Dict:
 
-        # Filter data for this group
+
         mask = group == group_value
         y_true_group = y_true[mask]
         y_pred_group = y_pred[mask]
         
-        # Calculate confusion matrix
         tn, fp, fn, tp = confusion_matrix(y_true_group, y_pred_group, 
                                          labels=[0, 1]).ravel()
         
-        # Calculate metrics
         metrics = {
             'group': group_value,
             'n_samples': len(y_true_group),
@@ -80,10 +77,10 @@ class FairnessEvaluator:
                 pe = group['fpr'] - ref_group['fpr']
                 
                 # EOR_FNR: Equal Opportunity Ratio based on FNR
-                if ref_group['fnr'] > 0.01:  # Apenas calcula ratio se FNR é significativo
+                if ref_group['fnr'] > 0.01:  # Just calculate ratio if FNR is not too close to zero
                     eor_fnr = group['fnr'] / ref_group['fnr']
                 else:
-                    # Quando FNR de referência é próximo de zero, usa diferença absoluta
+                    # When FNR is close to zero, use absolute difference
                     eor_fnr = 1.0 + (group['fnr'] - ref_group['fnr']) * 10
                 
                 # SP: Statistical Parity (selection rate difference)
@@ -206,7 +203,7 @@ class FairnessEvaluator:
                           test_size: float = 0.3,
                           model_params: Optional[Dict] = None) -> Dict:
 
-        from sklearn.preprocessing import LabelEncoder
+        
         
         # Separate sensitive attribute
         if sensitive_attribute not in X.columns:
@@ -349,14 +346,6 @@ class FairnessEvaluator:
         return df[column_order]
     
     def save_results(self, filepath: str):
-        """
-        Save results to CSV file.
-        
-        Parameters:
-        -----------
-        filepath : str
-            Path to save the CSV file
-        """
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         df = self.results_to_dataframe()
         df = df[1:]
@@ -364,7 +353,6 @@ class FairnessEvaluator:
         print(f"Results saved to {filepath}")
     
     def print_summary(self):
-        """Print a summary of the fairness evaluation."""
         if not self.results:
             print("No results available. Run train_and_evaluate first.")
             return
@@ -502,24 +490,17 @@ def fairness_pipeline(data: pd.DataFrame,
 
 
 def calculate_overall_fairness_score(results_row):
-    """
-    Calculate overall fairness score (lower is better).
-    
-    Ideal values:
-    - ACC, DI, EOR_FNR, EOR_TPR = 1.0
-    - PE, SP, EOD, AOD = 0.0
-    """
     # Absolute deviations from ideal
     factor = 1.5
     deviations = [
-        1 * abs(results_row['DI'] - 1.0) * factor,      # Tier 1: Legal standard
-        0.90 * abs(results_row['SP'] - 0.0) * factor,      # Tier 1: Intuitive
-        0.90 * abs(results_row['EOD'] - 0.0) * factor,     # Tier 1: Balanced
-        0.7 * abs(results_row['AOD'] - 0.0) * factor,     # Tier 2: Directional
-        0.6 * abs(results_row['PE'] - 0.0) * factor,      # Tier 2: FP equality
-        0.5 * abs(results_row['EOR_TPR'] - 1.0) * factor, # Tier 3: TPR equality
-        0.3 * abs(results_row['ACC'] - 1.0) * factor,     # Tier 3: Accuracy
-        0.2 * abs(results_row['EOR_FNR'] - 1.0) * factor # Tier 3: FNR equality
+        1 * abs(results_row['DI'] - 1.0) * factor,      
+        0.90 * abs(results_row['SP'] - 0.0) * factor,      
+        0.90 * abs(results_row['EOD'] - 0.0) * factor,     
+        0.7 * abs(results_row['AOD'] - 0.0) * factor,     
+        0.6 * abs(results_row['PE'] - 0.0) * factor,      
+        0.5 * abs(results_row['EOR_TPR'] - 1.0) * factor, 
+        0.3 * abs(results_row['ACC'] - 1.0) * factor,     
+        0.2 * abs(results_row['EOR_FNR'] - 1.0) * factor
     ]
     # Mean absolute deviation
     overall_fairness = np.mean(deviations)

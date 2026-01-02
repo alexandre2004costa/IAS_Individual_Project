@@ -4,7 +4,7 @@ import os
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score
-from typing import Dict, List, Tuple, Optional
+from typing import Tuple
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -30,7 +30,6 @@ class SimplifiedRobustnessEvaluator:
         self.model.fit(X_train, y_train)
 
     def calculate_stability_score(self, X, n_iter=5, noise_level=0.05):
-        """Measures prediction consistency when features are jittered."""
         original_preds = self.model.predict(X)
         stability_runs = []
         for _ in range(n_iter):
@@ -41,7 +40,6 @@ class SimplifiedRobustnessEvaluator:
         return np.mean(stability_runs)
 
     def calculate_resilience_score(self, X, y, noise_level=0.1):
-        """Measures accuracy retention under significant perturbation."""
         clean_acc = accuracy_score(y, self.model.predict(X))
         noise = np.random.normal(0, noise_level, X.shape) * np.std(X, axis=0).values
         X_corrupted = X + noise
@@ -49,7 +47,6 @@ class SimplifiedRobustnessEvaluator:
         return min(corrupted_acc / (clean_acc + 1e-10), 1.0)
 
     def calculate_reliability_score(self, X, y, n_bins=10):
-        """Measures calibration (1 - Expected Calibration Error)."""
         probs = self.model.predict_proba(X)[:, 1]
         bin_boundaries = np.linspace(0, 1, n_bins + 1)
         ece = 0.0
@@ -98,15 +95,12 @@ class SimplifiedRobustnessEvaluator:
         return self.results
 
     def results_to_dataframe(self):
-        """Convert results to a single-row DataFrame with weighted averages."""
         if not self.results:
             raise ValueError("No results available. Run evaluate() first.")
         
-        # Extract stats from all groups
         group_stats = list(self.results['group_results'].values())
         total_samples = sum(s['n_samples'] for s in group_stats)
         
-        # Calculate weighted averages for each metric
         # Formula: sum(metric * n_samples) / total_samples
         w_stability = sum(s['stability'] * s['n_samples'] for s in group_stats) / total_samples
         w_resilience = sum(s['resilience'] * s['n_samples'] for s in group_stats) / total_samples
@@ -129,7 +123,6 @@ class SimplifiedRobustnessEvaluator:
         return pd.DataFrame([summary_row])
 
     def save_results(self, filepath):
-        """Save results to CSV, creating the directory if needed."""
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         df = self.results_to_dataframe()
         df.to_csv(filepath, index=False)
@@ -155,7 +148,6 @@ def robustness_pipeline_presplit(
     output_csv: str = "results/robustness/robustness_results.csv",
     model_type: str = 'logistic'
 ) -> Tuple:
-    """Complete Robustness evaluation pipeline."""
     evaluator = SimplifiedRobustnessEvaluator(model_type=model_type)
     evaluator.evaluate(X_train, X_test, y_train, y_test, sensitive_attribute)
     evaluator.print_summary()

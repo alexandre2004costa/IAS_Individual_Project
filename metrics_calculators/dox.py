@@ -1,25 +1,10 @@
-"""
-Simplified DoX-Inspired Explainability Pipeline
-================================================
-
-A practical explainability metric inspired by DoX (Sovrano & Vitali, 2023)
-that measures if explanations can answer key questions:
-- WHY: What features drove the prediction?
-- HOW: What's their relative importance?
-- WHAT: How complete is the explanation?
-
-This simplified approach captures DoX's philosophical foundation
-without the computational complexity of full NLP processing.
-"""
-
 import numpy as np
 import pandas as pd
 import shap
 import os
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import LabelEncoder
-from typing import Dict, List, Tuple, Optional
+from typing import Tuple
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -35,15 +20,6 @@ class SimplifiedDoXEvaluator:
     """
     
     def __init__(self, model_type='logistic', random_state=42):
-        """
-        Initialize evaluator.
-        
-        Parameters:
-        -----------
-        model_type : str
-            'logistic' or 'random_forest'
-        random_state : int
-        """
         self.model_type = model_type
         self.random_state = random_state
         self.model = None
@@ -51,46 +27,27 @@ class SimplifiedDoXEvaluator:
         self.results = {}
     
     def train_model(self, X_train, y_train):
-        """Train model and create SHAP explainer."""
         if self.model_type == 'logistic':
             self.model = LogisticRegression(max_iter=1000, random_state=self.random_state)
         elif self.model_type == 'random_forest':
             self.model = RandomForestClassifier(n_estimators=100, random_state=self.random_state)
         else:
             raise ValueError(f"Unknown model_type: {self.model_type}")
-        
         self.model.fit(X_train, y_train)
         
-        # Create SHAP explainer
         if self.model_type == 'logistic':
             self.explainer = shap.LinearExplainer(self.model, X_train)
         else:
             self.explainer = shap.TreeExplainer(self.model)
     
     def calculate_shap_values(self, X):
-        """Calculate SHAP values for dataset."""
         shap_values = self.explainer.shap_values(X)
-        
-        # Handle binary classification
         if isinstance(shap_values, list):
-            shap_values = shap_values[1]  # Positive class
+            shap_values = shap_values[1]
         
         return shap_values
     
     def calculate_clarity_score(self, shap_values, top_k=3):
-        """
-        Q1: WHY - Clarity Score
-        
-        Can we clearly identify the most important features?
-        
-        Measures:
-        - Concentration of importance in top features (Gini-like)
-        - Separation between top and remaining features
-        
-        Returns:
-        --------
-        float : Score 0-1 (higher = clearer important features)
-        """
         abs_shap = np.abs(shap_values)
         
         if abs_shap.sum() == 0:
@@ -101,19 +58,14 @@ class SimplifiedDoXEvaluator:
         
         # Get top k features
         top_indices = np.argsort(abs_shap)[-top_k:]
-        
-        # Score 1: Concentration of importance (entropy-based)
-        # Lower entropy = clearer top features
-        # Remove zeros to avoid log(0)
         nonzero_probs = shap_probs[shap_probs > 0]
         entropy = -np.sum(nonzero_probs * np.log2(nonzero_probs + 1e-10))
         max_entropy = np.log2(len(abs_shap))  # Maximum possible entropy
-        concentration_score = 1.0 - (entropy / max_entropy)  # Invert so high = good
+        concentration_score = 1.0 - (entropy / max_entropy) 
         
-        # Score 2: Dominance of top-k features
         top_dominance = shap_probs[top_indices].sum()
         
-        # Score 3: Relative gap between top-k and rest
+        # Relative gap between top-k and rest
         if len(abs_shap) > top_k:
             remaining_indices = np.setdiff1d(np.arange(len(abs_shap)), top_indices)
             top_mean = abs_shap[top_indices].mean()
@@ -135,54 +87,27 @@ class SimplifiedDoXEvaluator:
         return clarity
     
     def calculate_distinctiveness_score(self, shap_values):
-        """
-        Q2: HOW - Distinctiveness Score
-        
-        Is the relative importance of features clear?
-        
-        Measures:
-        - Range of SHAP values (spread)
-        - Coefficient of variation
-        
-        Returns:
-        --------
-        float : Score 0-1 (higher = clearer relative importance)
-        """
         abs_shap = np.abs(shap_values)
         
-        # Score 1: Range of importance values
+        # Range of importance values
         if abs_shap.max() > 0:
             importance_range = abs_shap.max() - abs_shap.min()
             range_score = min(importance_range / 0.5, 1.0)  # Normalize
         else:
             range_score = 0.0
         
-        # Score 2: Coefficient of variation (relative spread)
+        # Coefficient of variation (relative spread)
         if abs_shap.mean() > 0:
             cv = abs_shap.std() / abs_shap.mean()
             cv_score = min(cv, 1.0)  # Cap at 1.0
         else:
             cv_score = 0.0
         
-        # Combined distinctiveness score
         distinctiveness = 0.6 * range_score + 0.4 * cv_score
         
         return distinctiveness
     
     def calculate_coverage_score(self, shap_values, top_k=3, target_coverage=0.8):
-        """
-        Q3: WHAT - Coverage Score
-        
-        Do the top features explain enough of the prediction?
-        
-        Measures:
-        - Proportion of total importance in top k features
-        - Uses higher target (0.8) and softer scaling for more variation
-        
-        Returns:
-        --------
-        float : Score 0-1 (higher = better coverage)
-        """
         abs_shap = np.abs(shap_values)
         total_importance = abs_shap.sum()
         
@@ -202,41 +127,22 @@ class SimplifiedDoXEvaluator:
             # Linear scaling below target
             coverage_score = coverage_ratio / target_coverage
         else:
-            # Slower growth above target (already good)
+            # Slower growth above target
             excess = coverage_ratio - target_coverage
             coverage_score = 1.0 - (0.2 * np.exp(-5 * excess))  # Asymptotic to 1.0
         
         return min(coverage_score, 1.0)
     
     def calculate_dox_inspired_score(self, shap_values, top_k=3):
-        """
-        Calculate overall DoX-inspired score for single instance.
-        
-        Combines three aspects:
-        - Clarity (WHY)
-        - Distinctiveness (HOW)
-        - Coverage (WHAT)
-        
-        Parameters:
-        -----------
-        shap_values : np.ndarray
-            SHAP values for single instance
-        top_k : int
-            Number of top features to consider
-            
-        Returns:
-        --------
-        dict : Individual scores and overall DoX
-        """
         clarity = self.calculate_clarity_score(shap_values, top_k)
         distinctiveness = self.calculate_distinctiveness_score(shap_values)
         coverage = self.calculate_coverage_score(shap_values, top_k)
         
         # Weighted average (inspired by DoX importance)
         weights = {
-            'clarity': 0.4,      # WHY is most important
-            'distinctiveness': 0.35,  # HOW is very important
-            'coverage': 0.25     # WHAT is supporting
+            'clarity': 0.4,      
+            'distinctiveness': 0.35, 
+            'coverage': 0.25    
         }
         
         overall_dox = (
@@ -253,32 +159,9 @@ class SimplifiedDoXEvaluator:
         }
     
     def evaluate_group(self, X, y, y_pred, group_name, top_k=3):
-        """
-        Evaluate DoX-inspired scores for a group.
-        
-        Parameters:
-        -----------
-        X : pd.DataFrame
-            Features (without sensitive attribute)
-        y : pd.Series or np.ndarray
-            True labels
-        y_pred : np.ndarray
-            Predicted labels
-        group_name : str
-            Name of group
-        top_k : int
-            Number of top features
-            
-        Returns:
-        --------
-        dict : Group statistics
-        """
         print(f"  Evaluating {group_name} ({len(X)} samples)...")
-        
-        # Calculate SHAP values
         shap_values = self.calculate_shap_values(X)
         
-        # Calculate DoX for each instance
         dox_scores = []
         clarity_scores = []
         distinctiveness_scores = []
@@ -290,8 +173,7 @@ class SimplifiedDoXEvaluator:
             clarity_scores.append(scores['clarity'])
             distinctiveness_scores.append(scores['distinctiveness'])
             coverage_scores.append(scores['coverage'])
-        
-        # Calculate statistics
+
         return {
             'group': group_name,
             'n_samples': len(X),
@@ -310,24 +192,6 @@ class SimplifiedDoXEvaluator:
         }
     
     def evaluate(self, X_train, X_test, y_train, y_test, sensitive_attr, top_k=3):
-        """
-        Complete DoX-inspired evaluation.
-        
-        Parameters:
-        -----------
-        X_train, X_test : pd.DataFrame
-            Features (including sensitive attribute)
-        y_train, y_test : pd.Series or np.ndarray
-            Labels
-        sensitive_attr : str
-            Name of sensitive attribute
-        top_k : int
-            Number of top features
-            
-        Returns:
-        --------
-        dict : Evaluation results
-        """
         print("="*80)
         print("SIMPLIFIED DOX-INSPIRED EVALUATION")
         print("="*80)
@@ -411,7 +275,6 @@ class SimplifiedDoXEvaluator:
         return results
     
     def results_to_dataframe(self):
-        """Convert results to DataFrame."""
         if not self.results:
             raise ValueError("No results available. Run evaluate() first.")
         
@@ -439,14 +302,12 @@ class SimplifiedDoXEvaluator:
         return pd.DataFrame(rows)
     
     def save_results(self, filepath):
-        """Save results to CSV."""
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         df = self.results_to_dataframe()
         df.to_csv(filepath, index=False)
         print(f"\n✓ Results saved to {filepath}")
     
     def print_summary(self):
-        """Print summary of evaluation."""
         if not self.results:
             print("No results available.")
             return
@@ -505,30 +366,7 @@ def dox_inspired_pipeline_presplit(
     top_k: int = 3,
     random_state: int = 42
 ) -> Tuple:
-    """
-    Complete DoX-inspired evaluation pipeline.
-    
-    Parameters:
-    -----------
-    X_train, X_test : pd.DataFrame
-        Features including sensitive attribute
-    y_train, y_test : pd.Series or np.ndarray
-        Labels
-    sensitive_attribute : str
-        Name of sensitive attribute column
-    output_csv : str
-        Path to save results
-    model_type : str
-        'logistic' or 'random_forest'
-    top_k : int
-        Number of top features to consider
-    random_state : int
-        
-    Returns:
-    --------
-    tuple : (evaluator, results_df)
-    """
-    # Validate inputs
+
     if sensitive_attribute not in X_train.columns:
         raise ValueError(f"Sensitive attribute '{sensitive_attribute}' not found in X_train")
     

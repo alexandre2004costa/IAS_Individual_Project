@@ -1,6 +1,4 @@
 import pandas as pd
-import numpy as np
-from sklearn.model_selection import train_test_split
 from metrics_calculators.fairness_help import *
 
 def load_data(directory_path):
@@ -15,7 +13,7 @@ def load_data(directory_path):
 
         if len(X_train) != len(y_train) or len(X_test) != len(y_test):
              print(f"ERRO: Desalinhamento de tamanho. Treino: {len(X_train)} vs {len(y_train)}. Teste: {len(X_test)} vs {len(y_test)}.")
-             return None, None, None, None # Retorna None se falhar
+             return None, None, None, None 
 
         return X_train, y_train, X_test, y_test
     
@@ -56,9 +54,7 @@ def fairness_run(sensitive_attribute, diffs, datasets):
 
 
 if __name__ == "__main__":
-    light_levels = ['0.0', '0.25', '0.5', '0.75', '1.0']
     detailed_levels = ['0.00', '0.10', '0.20', '0.30', '0.40', '0.50', '0.60', '0.70', '0.80', '0.90', '1.00']
-    other_level = ['0.00', '0.20', '0.40', '0.60', '0.80', '1.00', '1.20', '1.50', '2.00']
     datasets = [
         'hist_bias_Y_ly_',
         'hist_bias_Q_lhq_',
@@ -71,6 +67,5 @@ if __name__ == "__main__":
         'representation_bias_lr_true',
         'label_noise_sy_',
     ]
-    #fairness_run(sensitive_attribute='A', diffs = [''], datasets=['baseline'])
     fairness_run(sensitive_attribute='A', diffs = detailed_levels, datasets=datasets)
     

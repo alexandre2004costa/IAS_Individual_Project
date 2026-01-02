@@ -13,6 +13,9 @@ BiasOnDemand is a Python library that generates synthetic datasets with **contro
 - Isolate individual bias types for systematic study
 - Create baseline (unbiased) datasets for comparison
 
+
+Following the BiasOnDemand framework, all datasets are generated from a common causal structure where the sensitive attribute 𝐴 influences the relevant resource variable R, which in turn affects the performance-related variable Q and ultimately the binary target Y. Biases are introduced by selectively modifying the dependencies, availability, or measurement of these variables.
+
 ---
 
 ## 🏗️ Core Data Structure
@@ -21,8 +24,8 @@ BiasOnDemand generates datasets based on a **structural causal model** with four
 
 ```
 Causal Structure:
-    A → Q → Y
-      ↘ R ↗
+    A → R → Q → Y
+      
 ```
 
 ### **The 4 Main Variables:**
@@ -282,115 +285,36 @@ biasondemand.generate_dataset(
 - **Standard setting**: Keep at `1.0`
 
 ---
+***Generated Datasets***
 
-## 🎯 Parameter Combinations for Common Scenarios
+**Historical Bias on $R$**
+Historical bias is introduced by strengthening the dependency:$$A \rightarrow R$$This reflects scenarios where access to resources $R$ is structurally influenced by sensitive attributes (e.g., gender affecting income). Although the model observes the true $R$, the distribution of $R$ differs significantly across groups. As a result, downstream variables $Q$ and $Y$ inherit this disparity, leading to group-level differences even when the learning process itself is unbiased.
 
-### **Scenario 1: Pure Baseline (No Bias)**
-```python
-biasondemand.generate_dataset(
-    path="/baseline",
-    dim=10000,
-    l_y=0.0,          # No historical bias on Y
-    l_h_r=0.0,        # No historical bias on R
-    l_h_q=0.0,        # No historical bias on Q
-    l_m=0.0,          # No measurement bias on R
-    l_m_y=0.0,        # No measurement bias on Y
-    p_u=0.0,          # No undersampling
-    l_r=False,        # No conditional bias
-    l_o=False,        # Include all variables
-    l_y_b=0.0,        # No interaction bias
-    sy=0.0,           # No label noise
-    l_q=0.0,          # Q doesn't influence Y structurally
-    l_r_q=0.0,        # R doesn't influence Q
-    thr_supp=1.0
-)
-```
-**Result**: Fair dataset where A doesn't influence outcomes
+**Historical Bias on $Q$**
+Here, bias affects an auxiliary variable:$$A \rightarrow Q$$This represents cases where contextual or environmental factors (e.g., neighborhood, education quality) are correlated with sensitive attributes. Since $Q$ influences $Y$, this bias propagates to the target, but less directly than bias on $R$, explaining its milder effects across fairness, explainability, and robustness metrics.
 
----
+**Historical Bias on $Y$**
+In this configuration, the sensitive attribute directly influences the target:$$A \rightarrow Y$$This models explicit discrimination embedded in historical labels (e.g., biased loan approvals). Even if features $R$ and $Q$ are unbiased, the target itself encodes group-dependent decisions, leading to degraded fairness and robustness while preserving much of the causal structure between inputs and outputs.
 
-### **Scenario 2: Historical Feature Bias Only**
-```python
-biasondemand.generate_dataset(
-    path="/hist_bias_features",
-    dim=10000,
-    l_h_r=0.5,        # Moderate bias on R
-    l_h_q=0.3,        # Moderate bias on Q
-    # All other bias parameters = 0
-    l_y=0.0, l_m=0.0, l_m_y=0.0, p_u=0.0,
-    l_r=False, l_o=False, l_y_b=0.0, sy=0.0,
-    l_q=0.0, l_r_q=0.0, thr_supp=1.0
-)
-```
-**Result**: R and Q values systematically lower for A=1, but Y not directly biased
+**Interaction Proxy Bias**
+Interaction proxy bias arises when a proxy variable $P_R$ interacts with other features:$$A \rightarrow P_R \rightarrow Q \rightarrow Y$$Although $A$ may not directly influence $Y$, the proxy leaks sensitive information through interactions, enabling the model to exploit spurious correlations. This explains the strong degradation observed in EOD, explainability clarity, and robustness stability, despite relatively preserved selection rates.
 
----
 
-### **Scenario 3: Direct Label Discrimination**
-```python
-biasondemand.generate_dataset(
-    path="/label_discrimination",
-    dim=10000,
-    l_y=1.0,          # Strong direct bias on Y
-    # All other bias parameters = 0
-    l_h_r=0.0, l_h_q=0.0, l_m=0.0, l_m_y=0.0, p_u=0.0,
-    l_r=False, l_o=False, l_y_b=0.0, sy=0.0,
-    l_q=0.0, l_r_q=0.0, thr_supp=1.0
-)
-```
-**Result**: Y=1 less likely for A=1 regardless of features (most severe bias)
+**Measurement Bias on $R$**
+Measurement bias on $R$ occurs when the true resource variable is unavailable and replaced by a proxy:$$R \rightarrow P_R \leftarrow A$$Although $R$ itself is unbiased, the observed proxy $P_R$ is contaminated by $A$. The model therefore learns from a distorted representation of legitimate resources, which explains why this bias strongly impacts fairness, explainability, and robustness simultaneously: the semantic meaning of the core explanatory variable is corrupted.
 
----
+**Measurement Bias on $Y$ (Linear and Non-Linear)**
+In these datasets, the true target $Y$ is not observed. Instead, a proxy $P_Y$ is used:$$Y \rightarrow P_Y \leftarrow A$$Linear and non-linear variants differ in how the noise interacts with $A$. These settings reflect biased evaluation or annotation processes. Since the distortion occurs at the output level, feature relationships remain intact, but learning becomes noisier and less reliable, affecting robustness and explainability more than selection-based fairness.
 
-### **Scenario 4: Severe Imbalance (Undersampling)**
-```python
-biasondemand.generate_dataset(
-    path="/severe_imbalance",
-    dim=15000,        # Start with more samples
-    p_u=0.9,          # Remove 90% of A=1 samples
-    # All other bias parameters = 0
-    l_y=0.0, l_h_r=0.0, l_h_q=0.0, l_m=0.0, l_m_y=0.0,
-    l_r=False, l_o=False, l_y_b=0.0, sy=0.0,
-    l_q=0.0, l_r_q=0.0, thr_supp=1.0
-)
-```
-**Result**: Only 10% of original A=1 samples remain (severe imbalance)
 
----
+**Representation Bias**
+Representation bias is introduced by altering the sampling distribution of $A$:$$P(A) \neq \text{uniform}$$The causal structure remains unchanged, but one group is under-represented. This leads to unreliable estimation of conditional distributions, explaining the severe fairness degradation (especially DI and EOD) while leaving explainability and robustness comparatively intact.
 
-### **Scenario 5: Measurement Bias**
-```python
-biasondemand.generate_dataset(
-    path="/measurement_bias",
-    dim=10000,
-    l_m=0.8,          # Strong measurement bias on R
-    l_m_y=0.5,        # Moderate measurement bias on Y (linear)
-    l_m_y_non_linear=False,
-    # All other bias parameters = 0
-    l_y=0.0, l_h_r=0.0, l_h_q=0.0, p_u=0.0,
-    l_r=False, l_o=False, l_y_b=0.0, sy=0.0,
-    l_q=0.0, l_r_q=0.0, thr_supp=1.0
-)
-```
-**Result**: R observed through noisy proxy P, Y labels have errors
+**Undersampling**
+Undersampling uniformly reduces data availability without altering:$$A \rightarrow R \rightarrow Q \rightarrow Y$$All groups are affected equally, and no causal path is distorted. As a result, fairness, explainability, and robustness metrics remain largely stable, confirming that reduced sample size alone does not introduce systematic bias.
 
----
-
-### **Scenario 6: Label Noise Only**
-```python
-biasondemand.generate_dataset(
-    path="/label_noise",
-    dim=10000,
-    sy=3.0,           # High label noise
-    # All other bias parameters = 0
-    l_y=0.0, l_h_r=0.0, l_h_q=0.0, l_m=0.0, l_m_y=0.0, p_u=0.0,
-    l_r=False, l_o=False, l_y_b=0.0,
-    l_q=0.0, l_r_q=0.0, thr_supp=1.0
-)
-```
-**Result**: Random noise in labels (affects both groups equally)
-
----
+**Label Noise**
+Label noise perturbs the target stochastically:$$Y \rightarrow \tilde{Y}$$This noise is not causally linked to $A$, but weakens the input–output relationship. Consequently, robustness and explainability degrade, while fairness remains relatively unaffected, as no group-specific mechanism is introduced.
 
 
 ## 🔬 Systematic Bias Study: Varying Single Parameters
@@ -433,3 +357,5 @@ BiasOnDemand provides fine-grained control over **where** and **how much** bias 
 | **Random** | `sy` | Label noise (not systematic bias) |
 
 
+
+**PS: This file is AI generated with some human changes.**
